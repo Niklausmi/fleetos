@@ -1,0 +1,18 @@
+# Environment / secrets
+.env
+
+# Docker volumes (auto-created)
+postgres_data/
+traccar_data/
+traccar_logs/
+
+# Mobile build artifacts
+mobile/node_modules/
+mobile/ios/build/
+mobile/android/build/
+mobile/android/.gradle/
+mobile/*.jks
+
+# OS
+.DS_Store
+Thumbs.db

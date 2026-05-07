@@ -1,0 +1,100 @@
+/* ═══════════════════════════════════════════
+   base.css — CSS variables, reset, typography
+   FleetOS v2
+═══════════════════════════════════════════ */
+:root {
+  --bg:        #050A14;
+  --bg2:       #080F1E;
+  --bg3:       #0C1628;
+  --glass:     rgba(255,255,255,0.055);
+  --glass-h:   rgba(255,255,255,0.09);
+  --border:    rgba(255,255,255,0.10);
+  --border-s:  rgba(255,255,255,0.06);
+
+  --accent:    #00E5C3;
+  --accent-d:  #00B89A;
+  --accent2:   #7B61FF;
+  --accent3:   #FF6B6B;
+  --warn:      #FFB347;
+  --info:      #58A6FF;
+
+  --text:      #E8F0FE;
+  --muted:     rgba(232,240,254,0.42);
+  --muted2:    rgba(232,240,254,0.22);
+
+  --online:    #00E5C3;
+  --idle:      #FFB347;
+  --offline:   #FF6B6B;
+
+  --radius-sm: 8px;
+  --radius:    12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  --blur:      blur(20px);
+  --shadow:    0 8px 32px rgba(0,0,0,0.45);
+  --shadow-s:  0 4px 16px rgba(0,0,0,0.3);
+
+  --sidebar-w: 220px;
+  --font-mono: 'DM Mono', monospace;
+  --font-sans: 'DM Sans', sans-serif;
+  --font-display: 'Syne', sans-serif;
+
+  --transition: 0.18s ease;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 10% 0%, rgba(0,229,195,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 100%, rgba(123,97,255,0.07) 0%, transparent 60%);
+}
+
+a { color: var(--accent); cursor: pointer; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+input, select, textarea {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color var(--transition);
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+}
+input::placeholder, textarea::placeholder {
+  color: var(--muted);
+}
+select option { background: var(--bg2); color: var(--text); }
+
+label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+h1 { font-family: var(--font-display); font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+h2 { font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+h3 { font-family: var(--font-display); font-size: 16px; font-weight: 700; }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }

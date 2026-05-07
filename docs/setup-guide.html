@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FleetOS — Setup Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #060C18;
+  --bg2:     #0A1224;
+  --glass:   rgba(255,255,255,0.055);
+  --border:  rgba(255,255,255,0.10);
+  --accent:  #00E5C3;
+  --accent2: #7B61FF;
+  --accent3: #FF6B6B;
+  --warn:    #FFB347;
+  --text:    #E8F0FE;
+  --muted:   rgba(232,240,254,0.45);
+  --done:    rgba(0,229,195,0.15);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+  background-image:
+    radial-gradient(ellipse 70% 40% at 15% 0%, rgba(0,229,195,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 85% 100%, rgba(123,97,255,0.08) 0%, transparent 60%);
+}
+
+/* ── HEADER ─────────────────────────── */
+.header {
+  text-align: center;
+  padding: 64px 24px 48px;
+  position: relative;
+}
+.header-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(0,229,195,0.12); border: 1px solid rgba(0,229,195,0.25);
+  border-radius: 30px; padding: 6px 16px; font-size: 12px;
+  color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase;
+  font-weight: 500; margin-bottom: 20px;
+}
+.header-pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:.4; transform:scale(1.4); } }
+
+h1 {
+  font-family: 'Syne'; font-size: clamp(32px, 5vw, 52px);
+  font-weight: 800; letter-spacing: -2px; line-height: 1.1;
+  margin-bottom: 16px;
+}
+h1 span { color: var(--accent); }
+.header-sub {
+  font-size: 16px; color: var(--muted); max-width: 520px;
+  margin: 0 auto 32px; font-weight: 300;
+}
+
+/* time estimate row */
+.time-row {
+  display: flex; justify-content: center; gap: 24px; flex-wrap: wrap;
+}
+.time-chip {
+  background: var(--glass); border: 1px solid var(--border);
+  border-radius: 10px; padding: 8px 18px;
+  font-size: 13px; display: flex; align-items: center; gap: 8px;
+}
+.time-chip .ico { font-size: 16px; }
+.time-chip strong { color: var(--text); font-weight: 500; }
+.time-chip span { color: var(--muted); }
+
+/* ── PROGRESS BAR ───────────────────── */
+.progress-wrap {
+  max-width: 860px; margin: 0 auto 48px; padding: 0 24px;
+}
+.progress-header {
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: var(--muted); margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+.progress-track {
+  height: 4px; background: rgba(255,255,255,0.08);
+  border-radius: 4px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 4px;
+  transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+.step-dots {
+  display: flex; gap: 0; margin-top: 10px; position: relative;
+}
+.step-dot {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 6px; cursor: pointer;
+}
+.step-dot .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(255,255,255,0.12); border: 1px solid var(--border);
+  transition: all 0.3s; position: relative; z-index: 1;
+}
+.step-dot.done .dot { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px rgba(0,229,195,0.5); }
+.step-dot.active .dot { background: var(--accent2); border-color: var(--accent2); transform: scale(1.4); box-shadow: 0 0 14px rgba(123,97,255,0.6); }
+.step-dot .label { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; text-align: center; line-height: 1.3; max-width: 72px; }
+.step-dot.active .label, .step-dot.done .label { color: var(--text); }
+
+/* ── LAYOUT ─────────────────────────── */
+.container { max-width: 860px; margin: 0 auto; padding: 0 24px 80px; }
+
+/* ── STEP CARDS ─────────────────────── */
+.step-card {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  transition: border-color 0.3s, transform 0.2s;
+}
+.step-card.active { border-color: rgba(123,97,255,0.35); transform: translateY(-1px); }
+.step-card.done { border-color: rgba(0,229,195,0.2); background: rgba(0,229,195,0.03); }
+.step-card.collapsed .step-body { display: none; }
+
+.step-header {
+  display: flex; align-items: center; gap: 16px;
+  padding: 20px 24px; cursor: pointer;
+  user-select: none;
+}
+.step-num {
+  width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne'; font-size: 16px; font-weight: 800;
+  background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+  transition: all 0.3s;
+}
+.step-card.active .step-num { background: rgba(123,97,255,0.2); border-color: rgba(123,97,255,0.4); color: var(--accent2); }
+.step-card.done .step-num { background: rgba(0,229,195,0.15); border-color: rgba(0,229,195,0.3); color: var(--accent); }
+
+.step-meta { flex: 1; min-width: 0; }
+.step-title { font-family: 'Syne'; font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+.step-subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.step-badge {
+  font-size: 11px; padding: 4px 12px; border-radius: 20px;
+  font-weight: 500; white-space: nowrap; flex-shrink: 0;
+}
+.step-badge.time { background: rgba(255,179,71,0.12); color: var(--warn); border: 1px solid rgba(255,179,71,0.2); }
+.step-badge.done-badge { background: var(--done); color: var(--accent); border: 1px solid rgba(0,229,195,0.25); }
+
+.step-chevron {
+  color: var(--muted); font-size: 14px; transition: transform 0.3s; flex-shrink: 0;
+}
+.step-card:not(.collapsed) .step-chevron { transform: rotate(180deg); }
+
+/* ── STEP BODY ──────────────────────── */
+.step-body { padding: 0 24px 24px; }
+.step-body hr { border: none; border-top: 1px solid var(--border); margin: 0 0 20px; }
+
+/* note box */
+.note {
+  background: rgba(123,97,255,0.08); border: 1px solid rgba(123,97,255,0.18);
+  border-radius: 12px; padding: 12px 16px; font-size: 13px;
+  color: rgba(232,240,254,0.8); margin-bottom: 18px;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.note .note-ico { font-size: 16px; flex-shrink: 0; }
+.note.warn { background: rgba(255,179,71,0.08); border-color: rgba(255,179,71,0.2); }
+.note.success { background: rgba(0,229,195,0.08); border-color: rgba(0,229,195,0.2); }
+.note.danger { background: rgba(255,107,107,0.08); border-color: rgba(255,107,107,0.2); }
+
+/* substeps */
+.substeps { display: flex; flex-direction: column; gap: 14px; }
+.substep {
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.substep-num {
+  width: 24px; height: 24px; border-radius: 8px; flex-shrink: 0;
+  background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Mono'; font-size: 11px; color: var(--muted);
+  margin-top: 2px;
+}
+.substep-content {}
+.substep-label { font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+.substep-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+/* code blocks */
+.code-block {
+  background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px; overflow: hidden; margin: 10px 0;
+}
+.code-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.03);
+}
+.code-lang { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+.copy-btn {
+  font-size: 11px; color: var(--muted); cursor: pointer; border: none;
+  background: none; padding: 2px 8px; border-radius: 6px;
+  transition: all 0.2s; font-family: 'DM Sans';
+}
+.copy-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+.copy-btn.copied { color: var(--accent); }
+pre {
+  font-family: 'DM Mono'; font-size: 12.5px; line-height: 1.7;
+  padding: 14px 16px; overflow-x: auto; color: rgba(232,240,254,0.85);
+}
+pre .c { color: var(--muted); }
+pre .k { color: var(--accent2); }
+pre .s { color: var(--accent); }
+pre .v { color: var(--warn); }
+
+/* file tree */
+.file-tree {
+  background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 16px; font-family: 'DM Mono'; font-size: 12px;
+  line-height: 2; color: rgba(232,240,254,0.7);
+}
+.file-tree .dir { color: var(--accent2); font-weight: 500; }
+.file-tree .file { color: rgba(232,240,254,0.6); }
+.file-tree .file.key { color: var(--accent); font-weight: 500; }
+.file-tree .comment { color: var(--muted); font-size: 11px; }
+
+/* grid info cards */
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.info-card {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px;
+}
+.info-card-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.info-card-val { font-family: 'DM Mono'; font-size: 13px; color: var(--accent); }
+.info-card-desc { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* port table */
+.port-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+.port-table th { text-align: left; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--border); font-weight: 400; }
+.port-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.port-table tr:last-child td { border-bottom: none; }
+.port-table tr:hover td { background: rgba(255,255,255,0.02); }
+.port { font-family: 'DM Mono'; font-size: 12px; color: var(--accent); }
+.proto { color: var(--muted); font-size: 12px; }
+
+/* done button */
+.done-btn {
+  display: flex; align-items: center; gap: 10px; margin-top: 20px;
+  padding: 12px 20px; border-radius: 12px; width: 100%;
+  background: rgba(0,229,195,0.08); border: 1px solid rgba(0,229,195,0.2);
+  color: var(--accent); font-family: 'Syne'; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; justify-content: center;
+}
+.done-btn:hover { background: rgba(0,229,195,0.15); transform: translateY(-1px); }
+.done-btn.marked { background: rgba(0,229,195,0.2); }
+
+/* ── COMPLETION ─────────────────────── */
+#completion {
+  text-align: center; padding: 48px 24px;
+  display: none;
+}
+.completion-icon { font-size: 64px; margin-bottom: 20px; animation: bounce 1s ease; }
+@keyframes bounce { 0%{transform:scale(0)} 60%{transform:scale(1.2)} 100%{transform:scale(1)} }
+.completion-title { font-family: 'Syne'; font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 12px; }
+.completion-title span { color: var(--accent); }
+.completion-sub { font-size: 15px; color: var(--muted); margin-bottom: 32px; }
+.url-pills { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.url-pill {
+  background: var(--glass); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 20px; display: flex; flex-direction: column; gap: 4px;
+}
+.url-pill-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+.url-pill-val { font-family: 'DM Mono'; font-size: 14px; color: var(--accent); }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-pill"><span>●</span>Quick Setup Guide</div>
+  <h1>Get <span>FleetOS</span> running<br>in minutes</h1>
+  <p class="header-sub">Follow these steps to deploy the full stack — Traccar backend, PostgreSQL, web UI, and mobile app.</p>
+  <div class="time-row">
+    <div class="time-chip"><span class="ico">⚡</span><strong>Docker path:</strong><span>~10 min</span></div>
+    <div class="time-chip"><span class="ico">🔧</span><strong>Manual path:</strong><span>~30 min</span></div>
+    <div class="time-chip"><span class="ico">📱</span><strong>Mobile app:</strong><span>~20 min extra</span></div>
+  </div>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-header">
+    <span>Setup progress</span>
+    <span id="progress-label">0 of 6 complete</span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+  <div class="step-dots" id="step-dots"></div>
+</div>
+
+<div class="container" id="steps-container">
+
+  <!-- ── STEP 1 ── -->
+  <div class="step-card" id="step-1" data-step="1">
+    <div class="step-header" onclick="toggleStep(1)">
+      <div class="step-num">1</div>
+      <div class="step-meta">
+        <div class="step-title">Prerequisites</div>
+        <div class="step-subtitle">Install Docker and Git on your server</div>
+      </div>
+      <div class="step-badge time">2 min</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <hr>
+      <div class="note">
+        <span class="note-ico">💡</span>
+        <div>Docker is the fastest path — it handles Traccar, PostgreSQL, pgAdmin, and the web UI in one command. If you prefer manual installation, jump to Step 3.</div>
+      </div>
+      <div class="substeps">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-label">Install Docker + Docker Compose</div>
+            <div class="substep-desc">Ubuntu / Debian:</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre>curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+newgrp docker
+docker compose version  <span class="c"># should print v2.x.x</span></pre>
+            </div>
+            <div class="substep-desc" style="margin-top:8px">macOS / Windows: Install <strong>Docker Desktop</strong> from docker.com — includes Compose.</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-label">Download FleetOS files</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre><span class="c"># Extract the downloaded files into a folder</span>
+mkdir fleetos && cd fleetos
+<span class="c"># Copy in: docker-compose.yml, config/, database/, web/, nginx.conf</span></pre>
+            </div>
+            <div class="substep-desc">Your folder should look like this:</div>
+            <div class="file-tree">
+              <div><span class="dir">fleetos/</span></div>
+              <div>&nbsp;&nbsp;├── <span class="file key">docker-compose.yml</span> <span class="comment">← main launcher</span></div>
+              <div>&nbsp;&nbsp;├── <span class="file key">nginx.conf</span></div>
+              <div>&nbsp;&nbsp;├── <span class="dir">config/</span></div>
+              <div>&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="file key">traccar.xml</span> <span class="comment">← edit password here</span></div>
+              <div>&nbsp;&nbsp;├── <span class="dir">database/</span></div>
+              <div>&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="file">schema.sql</span></div>
+              <div>&nbsp;&nbsp;└── <span class="dir">web/</span></div>
+              <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="file key">index.html</span> <span class="comment">← web UI</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="done-btn" onclick="markDone(1)">✓ Prerequisites ready — next step</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 2 ── -->
+  <div class="step-card collapsed" id="step-2" data-step="2">
+    <div class="step-header" onclick="toggleStep(2)">
+      <div class="step-num">2</div>
+      <div class="step-meta">
+        <div class="step-title">Configure passwords</div>
+        <div class="step-subtitle">Set your database password before launching</div>
+      </div>
+      <div class="step-badge time">2 min</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <hr>
+      <div class="note warn">
+        <span class="note-ico">⚠️</span>
+        <div>Do this <strong>before</strong> running Docker. The password must match in both files or Traccar won't connect to Postgres.</div>
+      </div>
+      <div class="substeps">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-label">Create the .env file</div>
+            <div class="substep-desc">Run in your <code style="font-family:'DM Mono';font-size:12px;color:var(--accent)">fleetos/</code> folder:</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre>echo "POSTGRES_PASSWORD=<span class="v">YourSecurePass123</span>" > .env</pre>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-label">Update config/traccar.xml</div>
+            <div class="substep-desc">Open <code style="font-family:'DM Mono';font-size:12px;color:var(--accent)">config/traccar.xml</code> and find this line — replace with the same password:</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">xml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre>&lt;<span class="k">entry</span> <span class="k">key</span>=<span class="s">'database.password'</span>&gt;<span class="v">YourSecurePass123</span>&lt;/<span class="k">entry</span>&gt;</pre>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">c</div>
+          <div class="substep-content">
+            <div class="substep-label">Optional: configure email notifications</div>
+            <div class="substep-desc">Also in <code style="font-family:'DM Mono';font-size:12px;color:var(--accent)">traccar.xml</code>, update the SMTP entries for alert emails. You can skip this and do it later.</div>
+          </div>
+        </div>
+      </div>
+      <button class="done-btn" onclick="markDone(2)">✓ Passwords configured — next step</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 3 ── -->
+  <div class="step-card collapsed" id="step-3" data-step="3">
+    <div class="step-header" onclick="toggleStep(3)">
+      <div class="step-num">3</div>
+      <div class="step-meta">
+        <div class="step-title">Launch the stack</div>
+        <div class="step-subtitle">One command starts everything</div>
+      </div>
+      <div class="step-badge time">3 min</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <hr>
+      <div class="substeps">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-label">Start all services</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre>cd fleetos
+docker compose up -d
+
+<span class="c"># Watch the logs until you see Traccar start:</span>
+docker compose logs -f traccar</pre>
+            </div>
+            <div class="substep-desc" style="margin-top:8px">Wait for the line: <code style="font-family:'DM Mono';font-size:12px;color:var(--accent)">Main: server is running</code> — takes ~30 seconds on first run.</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-label">Verify all containers are healthy</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre>docker compose ps</pre>
+            </div>
+            <div class="substep-desc">All 4 containers should show <code style="font-family:'DM Mono';font-size:12px;color:var(--accent)">Up</code> or <code style="font-family:'DM Mono';font-size:12px;color:var(--accent)">healthy</code>:</div>
+            <div class="info-grid">
+              <div class="info-card">
+                <div class="info-card-label">fleetos-postgres</div>
+                <div class="info-card-val">:5432</div>
+                <div class="info-card-desc">Database server</div>
+              </div>
+              <div class="info-card">
+                <div class="info-card-label">fleetos-traccar</div>
+                <div class="info-card-val">:8082</div>
+                <div class="info-card-desc">GPS backend + API</div>
+              </div>
+              <div class="info-card">
+                <div class="info-card-label">fleetos-web</div>
+                <div class="info-card-val">:3000</div>
+                <div class="info-card-desc">FleetOS web UI</div>
+              </div>
+              <div class="info-card">
+                <div class="info-card-label">fleetos-pgadmin</div>
+                <div class="info-card-val">:5050</div>
+                <div class="info-card-desc">Database manager</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="done-btn" onclick="markDone(3)">✓ Stack is running — next step</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 4 ── -->
+  <div class="step-card collapsed" id="step-4" data-step="4">
+    <div class="step-header" onclick="toggleStep(4)">
+      <div class="step-num">4</div>
+      <div class="step-meta">
+        <div class="step-title">Create your admin account</div>
+        <div class="step-subtitle">First-time Traccar setup + connect FleetOS</div>
+      </div>
+      <div class="step-badge time">2 min</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <hr>
+      <div class="note success">
+        <span class="note-ico">✅</span>
+        <div>Traccar creates the first account as admin automatically — no separate setup needed.</div>
+      </div>
+      <div class="substeps">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-label">Create your Traccar admin account</div>
+            <div class="substep-desc">Open <strong>http://localhost:8082</strong> in your browser. You'll see Traccar's default web interface. Click <em>Register</em> and create an account — the first account is automatically made an admin.</div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-label">Open FleetOS and log in</div>
+            <div class="substep-desc">Now open <strong>http://localhost:3000</strong> — this is the FleetOS UI. Use the same credentials you just created.</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">login fields</span></div>
+              <pre>Server URL : <span class="s">http://localhost:8082</span>
+Email      : <span class="s">your@email.com</span>
+Password   : <span class="s">yourpassword</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">c</div>
+          <div class="substep-content">
+            <div class="substep-label">Or use a demo server to test immediately</div>
+            <div class="substep-desc">Click <strong>"Use Demo Server"</strong> on the login screen to connect to Traccar's public demo with pre-loaded vehicles — no setup required.</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">demo credentials</span></div>
+              <pre>Server URL : <span class="s">https://demo.traccar.org</span>
+Email      : <span class="s">demo@traccar.org</span>
+Password   : <span class="s">demo</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="done-btn" onclick="markDone(4)">✓ Logged in — next step</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 5 ── -->
+  <div class="step-card collapsed" id="step-5" data-step="5">
+    <div class="step-header" onclick="toggleStep(5)">
+      <div class="step-num">5</div>
+      <div class="step-meta">
+        <div class="step-title">Connect your GPS devices</div>
+        <div class="step-subtitle">Register devices and configure trackers to send data</div>
+      </div>
+      <div class="step-badge time">5 min</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <hr>
+      <div class="substeps">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-label">Add a device in Traccar</div>
+            <div class="substep-desc">In the FleetOS <strong>Devices</strong> tab, or directly at <strong>http://localhost:8082</strong> → Devices → Add. You need the device's <strong>IMEI number</strong> (printed on the tracker or in its settings).</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">fields</span></div>
+              <pre>Name      : <span class="s">Alpha-01</span>  <span class="c">(any name you want)</span>
+Unique ID : <span class="s">123456789012345</span>  <span class="c">(IMEI number)</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-label">Configure your GPS tracker</div>
+            <div class="substep-desc">Send an SMS to your tracker (or use its config software) to point it at your server. Common SMS commands:</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">GT06 / Concox</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre>SERVER,0,<span class="v">YOUR_SERVER_IP</span>,5023,0#</pre>
+            </div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">Sinotrack ST-901</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre>804<span class="v">admin</span> <span class="v">YOUR_SERVER_IP</span> 5036</pre>
+            </div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">Teltonika (via Configurator app)</span></div>
+              <pre>GPRS → Server → IP: <span class="v">YOUR_SERVER_IP</span>  Port: <span class="v">5027</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">c</div>
+          <div class="substep-content">
+            <div class="substep-label">Port reference — which port for your tracker</div>
+            <table class="port-table">
+              <thead><tr><th>Device / Protocol</th><th>Port</th><th>Protocol</th></tr></thead>
+              <tbody>
+                <tr><td>GT06, Concox, Jointech</td><td class="port">5023</td><td class="proto">GT06</td></tr>
+                <tr><td>Teltonika FMB, FMC, FMP</td><td class="port">5027</td><td class="proto">Teltonika</td></tr>
+                <tr><td>Queclink GV300/500/600</td><td class="port">5004</td><td class="proto">GL200</td></tr>
+                <tr><td>Sinotrack ST-901/906</td><td class="port">5036</td><td class="proto">Sinotrack</td></tr>
+                <tr><td>Meitrack T399 / MT90</td><td class="port">5020</td><td class="proto">Meitrack</td></tr>
+                <tr><td>Traccar Client (mobile)</td><td class="port">5055</td><td class="proto">OsmAnd</td></tr>
+                <tr><td>Generic NMEA over TCP</td><td class="port">10000</td><td class="proto">NMEA</td></tr>
+              </tbody>
+            </table>
+            <div class="note" style="margin-top:12px">
+              <span class="note-ico">💡</span>
+              <div>Don't see your device? Traccar supports 200+ protocols. Check <strong>traccar.org/devices</strong> for the full list and port number.</div>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">d</div>
+          <div class="substep-content">
+            <div class="substep-label">Track using Traccar Client (phone as a tracker)</div>
+            <div class="substep-desc">Install <strong>Traccar Client</strong> from the App Store / Play Store. Open it, set Server URL to <code style="font-family:'DM Mono';font-size:12px;color:var(--accent)">http://YOUR_IP:5055</code> and Device Identifier to the IMEI you registered. Tap Start — your phone appears on the map instantly.</div>
+          </div>
+        </div>
+      </div>
+      <button class="done-btn" onclick="markDone(5)">✓ Devices connected — next step</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 6 ── -->
+  <div class="step-card collapsed" id="step-6" data-step="6">
+    <div class="step-header" onclick="toggleStep(6)">
+      <div class="step-num">6</div>
+      <div class="step-meta">
+        <div class="step-title">Mobile app setup</div>
+        <div class="step-subtitle">Build and run the React Native app on iOS / Android</div>
+      </div>
+      <div class="step-badge time">20 min</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <hr>
+      <div class="note warn">
+        <span class="note-ico">⚠️</span>
+        <div>Requires Node.js 18+, and Xcode (iOS) or Android Studio (Android) installed. Skip this step if you only need the web UI.</div>
+      </div>
+      <div class="substeps">
+        <div class="substep">
+          <div class="substep-num">a</div>
+          <div class="substep-content">
+            <div class="substep-label">Bootstrap the React Native project</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre>npx react-native@latest init FleetOSMobile \
+  --template react-native-template-typescript
+cd FleetOSMobile</pre>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">b</div>
+          <div class="substep-content">
+            <div class="substep-label">Install dependencies</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre>npm install \
+  @react-navigation/native \
+  @react-navigation/bottom-tabs \
+  @react-navigation/stack \
+  react-native-maps \
+  @react-native-async-storage/async-storage \
+  react-native-safe-area-context \
+  react-native-screens</pre>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">c</div>
+          <div class="substep-content">
+            <div class="substep-label">Copy the app file + configure Google Maps (Android)</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre><span class="c"># Copy App.tsx from the fleetos/mobile/ folder</span>
+cp ../fleetos/mobile/App.tsx ./App.tsx</pre>
+            </div>
+            <div class="substep-desc" style="margin-top:8px">For Google Maps on Android, add your API key in <code style="font-family:'DM Mono';font-size:12px;color:var(--accent)">android/app/src/main/AndroidManifest.xml</code>:</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">xml</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre>&lt;<span class="k">meta-data</span>
+  <span class="k">android:name</span>=<span class="s">"com.google.android.geo.API_KEY"</span>
+  <span class="k">android:value</span>=<span class="s">"YOUR_GOOGLE_MAPS_API_KEY"</span>/&gt;</pre>
+            </div>
+            <div class="note" style="margin-top:10px">
+              <span class="note-ico">💡</span>
+              <div>Get a free Google Maps API key at <strong>console.cloud.google.com</strong> → APIs → Maps SDK for Android. iOS uses Apple Maps by default (no key needed).</div>
+            </div>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">d</div>
+          <div class="substep-content">
+            <div class="substep-label">Run on device</div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">iOS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre>cd ios && pod install && cd ..
+npx react-native run-ios</pre>
+            </div>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">Android</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <pre>npx react-native run-android</pre>
+            </div>
+            <div class="substep-desc" style="margin-top:8px">On the login screen, enter your server IP (not <code style="font-family:'DM Mono';font-size:12px;color:var(--accent)">localhost</code> — use your machine's actual IP address like <code style="font-family:'DM Mono';font-size:12px;color:var(--accent)">http://192.168.1.x:8082</code>).</div>
+          </div>
+        </div>
+      </div>
+      <button class="done-btn" onclick="markDone(6)">✓ Mobile app running — finish!</button>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ── COMPLETION ── -->
+<div id="completion" class="container">
+  <div class="completion-icon">🚀</div>
+  <div class="completion-title">Fleet<span>OS</span> is live!</div>
+  <p class="completion-sub">Your full-stack GPS fleet platform is running. Open these URLs to get started:</p>
+  <div class="url-pills">
+    <div class="url-pill">
+      <div class="url-pill-label">FleetOS Web UI</div>
+      <div class="url-pill-val">http://localhost:3000</div>
+    </div>
+    <div class="url-pill">
+      <div class="url-pill-label">Traccar API / Default UI</div>
+      <div class="url-pill-val">http://localhost:8082</div>
+    </div>
+    <div class="url-pill">
+      <div class="url-pill-label">pgAdmin (DB Manager)</div>
+      <div class="url-pill-val">http://localhost:5050</div>
+    </div>
+  </div>
+  <div class="note success" style="margin-top:28px;text-align:left">
+    <span class="note-ico">💡</span>
+    <div><strong>Next steps:</strong> Set up geofences in Traccar → Geofences, configure SMS/email alerts in traccar.xml, and invite users via Settings → Users in the Traccar UI.</div>
+  </div>
+</div>
+
+<script>
+const TOTAL = 6;
+const state = { done: new Set(), current: 1 };
+
+const stepLabels = ['Prerequisites','Passwords','Launch stack','Admin account','GPS devices','Mobile app'];
+
+function initDots() {
+  const wrap = document.getElementById('step-dots');
+  stepLabels.forEach((label, i) => {
+    const d = document.createElement('div');
+    d.className = 'step-dot' + (i === 0 ? ' active' : '');
+    d.id = 'dot-' + (i + 1);
+    d.innerHTML = `<div class="dot"></div><div class="label">${label}</div>`;
+    d.onclick = () => toggleStep(i + 1);
+    wrap.appendChild(d);
+  });
+}
+
+function toggleStep(n) {
+  const card = document.getElementById('step-' + n);
+  const isCollapsed = card.classList.contains('collapsed');
+  // collapse all
+  document.querySelectorAll('.step-card').forEach(c => c.classList.add('collapsed'));
+  document.querySelectorAll('.step-card').forEach(c => c.classList.remove('active'));
+  if (isCollapsed) {
+    card.classList.remove('collapsed');
+    card.classList.add('active');
+    state.current = n;
+    updateDots();
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+function markDone(n) {
+  state.done.add(n);
+  const card = document.getElementById('step-' + n);
+  card.classList.add('done');
+  const btn = card.querySelector('.done-btn');
+  btn.classList.add('marked');
+  btn.innerHTML = '✓ Done!';
+  const badge = card.querySelector('.step-badge');
+  badge.className = 'step-badge done-badge';
+  badge.textContent = '✓ Complete';
+  updateProgress();
+  // auto-open next
+  if (n < TOTAL) {
+    setTimeout(() => toggleStep(n + 1), 400);
+  } else {
+    setTimeout(showCompletion, 600);
+  }
+}
+
+function updateProgress() {
+  const done = state.done.size;
+  const pct = (done / TOTAL) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `${done} of ${TOTAL} complete`;
+  stepLabels.forEach((_, i) => {
+    const dot = document.getElementById('dot-' + (i + 1));
+    dot.classList.remove('done', 'active');
+    if (state.done.has(i + 1)) dot.classList.add('done');
+    else if (i + 1 === state.current) dot.classList.add('active');
+  });
+}
+
+function updateDots() {
+  stepLabels.forEach((_, i) => {
+    const dot = document.getElementById('dot-' + (i + 1));
+    dot.classList.remove('active');
+    if (i + 1 === state.current && !state.done.has(i + 1)) dot.classList.add('active');
+  });
+}
+
+function showCompletion() {
+  document.getElementById('steps-container').style.display = 'none';
+  document.getElementById('completion').style.display = 'block';
+  document.getElementById('completion').scrollIntoView({ behavior: 'smooth' });
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// init
+initDots();
+updateProgress();
+// open step 1 by default
+document.getElementById('step-1').classList.remove('collapsed');
+document.getElementById('step-1').classList.add('active');
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<?xml version='1.0' encoding='UTF-8'?>
+
+<!DOCTYPE properties SYSTEM 'http://java.sun.com/dtd/properties.dtd'>
+
+<!--
+  FleetOS — Traccar Server Configuration
+  Place this file at: /opt/traccar/conf/traccar.xml
+  
+  This config:
+  - Uses PostgreSQL as the database backend
+  - Enables WebSocket for real-time updates
+  - Configures CORS for the FleetOS frontend
+  - Enables all common GPS protocols
+-->
+
+<properties>
+
+  <!-- ═══════════════════════════════════════
+       DATABASE — PostgreSQL
+  ════════════════════════════════════════ -->
+  <entry key='database.driver'>org.postgresql.Driver</entry>
+  <entry key='database.url'>jdbc:postgresql://postgres:5432/traccar</entry>
+  <entry key='database.user'>traccar</entry>
+  <entry key='database.password'>PXJbIJ59qcPDvuXHOX3u</entry>
+
+  <!-- Connection pool -->
+  <entry key='database.pool.size'>16</entry>
+
+  <!-- ═══════════════════════════════════════
+       WEB SERVER
+  ════════════════════════════════════════ -->
+  <!-- REST API + Web UI port -->
+  <entry key='web.enable'>true</entry>
+  <entry key='web.port'>8082</entry>
+  <entry key='web.path'>/opt/traccar/web</entry>
+
+  <!-- CORS — allow FleetOS frontend -->
+  <entry key='web.origin'>*</entry>
+
+  <!-- ═══════════════════════════════════════
+       GEOCODING (reverse geocode addresses)
+  ════════════════════════════════════════ -->
+  <!-- Using Nominatim (free, no key needed) -->
+  <entry key='geocoder.enable'>true</entry>
+  <entry key='geocoder.type'>nominatim</entry>
+  <entry key='geocoder.url'>https://nominatim.openstreetmap.org/reverse</entry>
+  <entry key='geocoder.cache'>512</entry>
+  <entry key='geocoder.rateLimit'>1</entry>
+
+  <!-- ═══════════════════════════════════════
+       NOTIFICATIONS
+  ════════════════════════════════════════ -->
+  <!-- Email -->
+  <entry key='mail.smtp.host'>smtp.gmail.com</entry>
+  <entry key='mail.smtp.port'>587</entry>
+  <entry key='mail.smtp.starttls.enable'>true</entry>
+  <entry key='mail.smtp.from'>your-fleet@gmail.com</entry>
+  <entry key='mail.smtp.auth'>true</entry>
+  <entry key='mail.smtp.username'>your-fleet@gmail.com</entry>
+  <entry key='mail.smtp.password'>YOUR_APP_PASSWORD</entry>
+
+  <!-- ═══════════════════════════════════════
+       GPS DEVICE PORTS
+       Common protocols — add more as needed
+  ════════════════════════════════════════ -->
+
+  <!-- GT06 / Concox (very common) -->
+  <entry key='gt06.port'>5023</entry>
+
+  <!-- Teltonika (FMB series, etc.) -->
+  <entry key='teltonika.port'>5027</entry>
+
+  <!-- Queclink (GV-series) -->
+  <entry key='gl200.port'>5004</entry>
+
+  <!-- Sinotrack / ST-901 -->
+  <entry key='sinotrack.port'>5036</entry>
+
+  <!-- Meitrack -->
+  <entry key='meitrack.port'>5020</entry>
+
+  <!-- JT701 / JT600 -->
+  <entry key='jt600.port'>5038</entry>
+
+  <!-- Coban / TK103 -->
+  <entry key='totem.port'>5007</entry>
+
+  <!-- Ruptela -->
+  <entry key='ruptela.port'>7700</entry>
+
+  <!-- Generic NMEA over TCP -->
+  <entry key='nmea.port'>10000</entry>
+
+  <!-- OsmAnd (mobile tracking app) -->
+  <entry key='osmand.port'>5055</entry>
+
+  <!-- Traccar Client (official mobile app) -->
+  <entry key='osmand.port'>5055</entry>
+
+  <!-- ═══════════════════════════════════════
+       FILTERING & PROCESSING
+  ════════════════════════════════════════ -->
+  <!-- Filter invalid/duplicate positions -->
+  <entry key='filter.enable'>true</entry>
+  <entry key='filter.invalid'>true</entry>
+  <entry key='filter.zero'>true</entry>
+  <entry key='filter.duplicate'>true</entry>
+  <entry key='filter.future'>true</entry>
+  <entry key='filter.accuracy'>50</entry>          <!-- max accuracy meters -->
+  <entry key='filter.distance'>5</entry>            <!-- min distance meters -->
+  <entry key='filter.maxSpeed'>600</entry>          <!-- max realistic speed km/h -->
+
+  <!-- Speed in km/h in reports -->
+  <entry key='report.trip.minimalTripDistance'>500</entry>
+  <entry key='report.trip.minimalTripDuration'>300</entry>
+  <entry key='report.trip.minimalParkingDuration'>300</entry>
+
+  <!-- ═══════════════════════════════════════
+       EVENT PROCESSING
+  ════════════════════════════════════════ -->
+  <entry key='processing.computedAttributes.enable'>true</entry>
+
+  <!-- ═══════════════════════════════════════
+       LOGGING
+  ════════════════════════════════════════ -->
+  <entry key='logger.enable'>true</entry>
+  <entry key='logger.level'>warning</entry>
+  <entry key='logger.file'>/opt/traccar/logs/tracker-server.log</entry>
+  <entry key='logger.rotate'>true</entry>
+
+</properties>
