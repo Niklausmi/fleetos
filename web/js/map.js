@@ -5,6 +5,7 @@ const MapUtil = (() => {
   const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
   const TILE_SAT  = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
   const TILE_LITE = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+  const TILE_OSM = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
   function createMap(elId, opts = {}) {
     const m = L.map(elId, { zoomControl: false, attributionControl: false, ...opts });
@@ -12,11 +13,24 @@ const MapUtil = (() => {
     return m;
   }
 
-  function setStyle(map, style) {
-    const tiles = { dark: TILE_DARK, satellite: TILE_SAT, streets: TILE_LITE };
-    map.eachLayer(l => { if (l instanceof L.TileLayer) map.removeLayer(l); });
-    L.tileLayer(tiles[style] || TILE_DARK, { maxZoom: 19 }).addTo(map);
-  }
+ 
+
+// Update your setStyle mapping
+function setStyle(map, style) {
+  const tiles = { 
+    dark: TILE_DARK, 
+    satellite: TILE_SAT, 
+    streets: TILE_OSM, // Use OSM for "streets" instead of Lite
+    lite: TILE_LITE 
+  };
+  
+  map.eachLayer(l => { if (l instanceof L.TileLayer) map.removeLayer(l); });
+  
+  L.tileLayer(tiles[style] || TILE_OSM, { 
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+}
 
   function deviceIcon(status, category = 'car', heading = 0) {
     const emoji = { truck: '🚛', bus: '🚌', motorcycle: '🏍️', bicycle: '🚲', boat: '⛵', plane: '✈️', car: '🚗' }[category] || '🚗';

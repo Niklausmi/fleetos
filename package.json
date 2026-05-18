@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "caddy": "^0.0.13"
+  }
+}

@@ -18,10 +18,10 @@
   <!-- ═══════════════════════════════════════
        DATABASE — PostgreSQL
   ════════════════════════════════════════ -->
-  <entry key='database.driver'>org.postgresql.Driver</entry>
-  <entry key='database.url'>jdbc:postgresql://postgres:5432/traccar</entry>
-  <entry key='database.user'>traccar</entry>
-  <entry key='database.password'>PXJbIJ59qcPDvuXHOX3u</entry>
+<entry key='database.driver'>org.postgresql.Driver</entry>
+<entry key='database.url'>jdbc:postgresql://fleetos-postgres-old:5432/traccar</entry>
+<entry key='database.user'>traccar</entry>
+<entry key='database.password'>PXJbIJ59qcPDvuXHOX3u</entry>
 
   <!-- Connection pool -->
   <entry key='database.pool.size'>16</entry>
