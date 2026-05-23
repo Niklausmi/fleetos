@@ -41,20 +41,24 @@ const NotificationsView = (() => {
     document.getElementById('view-notifications').innerHTML = `
       <div class="page-header">
         <div>
-          <h2 class="page-title">Alert Rules</h2>
-          <div class="page-sub">Configure event notifications and alert channels</div>
+          <div class="page-title">Alert Rules</div>
+          <div class="page-sub">Configure event notifications and delivery channels</div>
         </div>
         <div class="page-actions">
-          <button class="btn btn-primary" onclick="NotificationsView.openForm()">+ New Alert Rule</button>
+          <button class="btn btn-primary" onclick="NotificationsView.openForm()">
+            + New Alert Rule
+          </button>
         </div>
       </div>
       <div class="page-scroll">
-        <div class="note note-success" style="margin-bottom:4px">
-          <span class="note-icon">💡</span>
-          <div>Alert rules are created per user. Each rule triggers a notification when the selected event occurs on the specified devices.</div>
+        <div class="note" style="margin-bottom:0">
+          <span class="note-icon">ℹ️</span>
+          <div>Alert rules are per user. Each rule triggers a notification when the selected event occurs on the specified devices.</div>
         </div>
-        <div id="notif-list" style="display:flex;flex-direction:column;gap:10px">
-          <div class="empty-state"><div class="empty-icon">⚡</div><div class="empty-title">Loading…</div></div>
+        <div class="card" style="overflow:hidden">
+          <div id="notif-list">
+            <div class="empty-state"><div class="empty-icon">⚡</div><div class="empty-title">Loading…</div></div>
+          </div>
         </div>
       </div>`;
     reload();
@@ -67,7 +71,7 @@ const NotificationsView = (() => {
       render(notifs);
     } catch (e) {
       document.getElementById('notif-list').innerHTML =
-        `<div class="note note-danger"><span class="note-icon">❌</span>${e.message}</div>`;
+        `<div class="note note-danger" style="margin:16px"><span class="note-icon">❌</span>${e.message}</div>`;
     }
   }
 
@@ -75,45 +79,94 @@ const NotificationsView = (() => {
     const el = document.getElementById('notif-list');
     if (!el) return;
     if (!notifs.length) {
-      el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚡</div>
+      el.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">⚡</div>
         <div class="empty-title">No alert rules yet</div>
         <div class="empty-sub">Create your first rule to start receiving notifications.</div>
-        <button class="btn btn-primary" onclick="NotificationsView.openForm()">+ New Alert Rule</button>
+        <button class="btn btn-primary" style="margin-top:8px" onclick="NotificationsView.openForm()">+ New Alert Rule</button>
       </div>`;
       return;
     }
-    el.innerHTML = notifs.map(n => {
-      const et = EVENT_TYPES.find(t => t.value === n.type) || { icon: '🔔', label: n.type };
-      const channels = buildChannelBadges(n);
-      const devices  = State.get('devices');
-      const allDev   = n.always || (!n.deviceId && !n.groupId);
-      return `<div class="notif-rule-row">
-        <div class="notif-rule-icon" style="background:rgba(0,229,195,0.1)">${et.icon}</div>
-        <div class="notif-rule-info">
-          <div class="notif-rule-name">${et.label}</div>
-          <div class="notif-rule-desc">
-            ${allDev ? 'All devices' : (devices.find(d => d.id === n.deviceId)?.name || 'Specific device')}
-            ${channels}
-          </div>
-        </div>
-        <div class="notif-rule-actions">
-          <div class="toggle ${n.always !== false ? 'on' : ''}" onclick="NotificationsView.toggleEnabled(${n.id}, this)" title="Enable/Disable"></div>
-          <button class="btn btn-icon btn-sm" onclick="NotificationsView.openForm(${n.id})">✏️</button>
-          <button class="btn btn-icon btn-sm" onclick="NotificationsView.confirmDelete(${n.id})">🗑️</button>
-        </div>
-      </div>`;
-    }).join('');
+
+    const devices = State.get('devices');
+
+    el.innerHTML = `
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width:36px"></th>
+            <th>Event Type</th>
+            <th>Applies To</th>
+            <th>Channels</th>
+            <th style="width:80px">Enabled</th>
+            <th style="width:88px; text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${notifs.map(n => {
+            const et      = EVENT_TYPES.find(t => t.value === n.type) || { icon: '🔔', label: n.type };
+            const allDev  = n.always || (!n.deviceId && !n.groupId);
+            const devName = allDev
+              ? '<span style="color:var(--muted)">All devices</span>'
+              : (devices.find(d => d.id === n.deviceId)?.name || 'Specific device');
+            const channels = buildChannelTags(n);
+            const enabled  = n.always !== false;
+
+            return `<tr>
+              <td>
+                <div class="notif-type-dot" style="background:${typeColor(n.type)}"></div>
+              </td>
+              <td>
+                <div class="notif-type-name">${et.label}</div>
+                <div class="notif-type-key td-mono">${n.type}</div>
+              </td>
+              <td>${devName}</td>
+              <td>${channels}</td>
+              <td>
+                <div class="toggle ${enabled ? 'on' : ''}"
+                     onclick="NotificationsView.toggleEnabled(${n.id}, this)"></div>
+              </td>
+              <td>
+                <div class="td-actions">
+                  <button class="btn btn-icon btn-sm" title="Edit"
+                          onclick="NotificationsView.openForm(${n.id})">✏️</button>
+                  <button class="btn btn-icon btn-sm" title="Delete"
+                          onclick="NotificationsView.confirmDelete(${n.id})">🗑️</button>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
   }
 
-  function buildChannelBadges(n) {
-    const active = [];
-    if (n.web)      active.push('🌐 Web');
-    if (n.mail)     active.push('📧 Email');
-    if (n.sms)      active.push('📱 SMS');
-    if (n.telegram) active.push('✈️ Telegram');
-    if (n.firebase) active.push('🔥 Firebase');
-    if (!active.length) active.push('No channels');
-    return ' · ' + active.join(', ');
+  function buildChannelTags(n) {
+    const map = [
+      { key:'web',      label:'Web',      color:'var(--info)' },
+      { key:'mail',     label:'Email',    color:'var(--primary)' },
+      { key:'sms',      label:'SMS',      color:'var(--success)' },
+      { key:'telegram', label:'Telegram', color:'var(--info)' },
+      { key:'firebase', label:'Firebase', color:'var(--warn)' },
+      { key:'pushover', label:'Pushover', color:'var(--muted)' },
+    ];
+    const active = map.filter(c => n[c.key]);
+    if (!active.length)
+      return `<span style="font-size:12px;color:var(--muted)">— none</span>`;
+    return active.map(c =>
+      `<span class="notif-channel-tag" style="--tc:${c.color}">${c.label}</span>`
+    ).join('');
+  }
+
+  function typeColor(type) {
+    const map = {
+      deviceOverspeed:'var(--danger)', alarm:'var(--danger)',
+      geofenceEnter:'var(--info)',     geofenceExit:'var(--info)',
+      ignitionOn:'var(--success)',     ignitionOff:'var(--muted)',
+      deviceOffline:'var(--warn)',     deviceOnline:'var(--success)',
+      deviceMoving:'var(--primary)',   deviceStopped:'var(--muted)',
+      maintenance:'var(--warn)',
+    };
+    return map[type] || 'var(--border-m)';
   }
 
   function openForm(id = null) {
@@ -191,24 +244,38 @@ const NotificationsView = (() => {
   }
 
   async function save(id) {
-    const data = {
-      type:        document.getElementById('nf-type').value,
-      deviceId:    parseInt(document.getElementById('nf-device').value) || 0,
-      groupId:     parseInt(document.getElementById('nf-group').value) || 0,
-      geofenceId:  parseInt(document.getElementById('nf-geofence').value) || 0,
-      always:      true,
-      web:         document.getElementById('nf-web').checked,
-      mail:        document.getElementById('nf-mail').checked,
-      sms:         document.getElementById('nf-sms').checked,
-      telegram:    document.getElementById('nf-telegram').checked,
-      firebase:    document.getElementById('nf-firebase').checked,
-      pushover:    document.getElementById('nf-pushover').checked,
-      attributes:  { mail: document.getElementById('nf-email-addr').value.trim() },
-    };
-    if (!data.type) return Toast.warn('Event type is required');
+    const type       = document.getElementById('nf-type').value;
+    const deviceId   = parseInt(document.getElementById('nf-device').value)   || null;
+    const groupId    = parseInt(document.getElementById('nf-group').value)    || null;
+    const geofenceId = parseInt(document.getElementById('nf-geofence').value) || null;
+    const emailAddr  = document.getElementById('nf-email-addr').value.trim();
+
+    if (!type) return Toast.warn('Event type is required');
+
+    // Build only the fields Traccar accepts — omit zeros/nulls entirely
+    const data = { type, always: true };
+    if (deviceId)   data.deviceId   = deviceId;
+    if (groupId)    data.groupId    = groupId;
+    if (geofenceId) data.geofenceId = geofenceId;
+
+    // Channel booleans — only include if true to keep payload minimal
+    const channels = ['web','mail','sms','telegram','firebase','pushover'];
+    channels.forEach(c => {
+      const el = document.getElementById('nf-' + c);
+      if (el && el.checked) data[c] = true;
+    });
+
+    // Attributes — only include non-empty values
+    const attrs = {};
+    if (emailAddr) attrs.mail = emailAddr;
+    if (Object.keys(attrs).length) data.attributes = attrs;
+
     try {
       if (id) {
-        const updated = await API.updateNotification(id, { ...State.get('notifications').find(x => x.id === id), ...data });
+        // Merge with existing to preserve any server fields (id, calendarId, etc.)
+        const existing = State.get('notifications').find(x => x.id === id) || {};
+        const payload  = { ...existing, ...data, id };
+        const updated  = await API.updateNotification(id, payload);
         State.set('notifications', State.get('notifications').map(x => x.id === id ? updated : x));
         Toast.success('Alert rule updated');
       } else {
@@ -218,15 +285,26 @@ const NotificationsView = (() => {
       }
       Modal.close();
       reload();
-    } catch (e) { Toast.error(e.message); }
+    } catch (e) {
+      Toast.error('Save failed: ' + e.message);
+    }
   }
 
   async function toggleEnabled(id, el) {
+    const wasOn = el.classList.contains('on');
     el.classList.toggle('on');
     try {
       const n = State.get('notifications').find(x => x.id === id);
-      await API.updateNotification(id, { ...n, always: el.classList.contains('on') });
-    } catch (e) { Toast.error(e.message); el.classList.toggle('on'); }
+      if (!n) return;
+      // Traccar toggle: flip 'always' field; preserve all other fields intact
+      await API.updateNotification(id, { ...n, always: !wasOn });
+      State.set('notifications', State.get('notifications').map(x =>
+        x.id === id ? { ...x, always: !wasOn } : x
+      ));
+    } catch (e) {
+      Toast.error(e.message);
+      el.classList.toggle('on'); // revert UI on failure
+    }
   }
 
   function confirmDelete(id) {

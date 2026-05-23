@@ -1,8 +1,6 @@
 /* ═══════════════════════════════════════════
-   pages/dashboard.js — Live Map
-   ✦ Device attribute strip (ignition, battery,
-     voltage, speed, satellites, fuel, RPM…)
-   ✦ Vehicle contact popup from sidebar
+   pages/dashboard.js — Live Map  (v4 layout)
+   Axion Track-style: KPI strip + map + fleet panel
 ═══════════════════════════════════════════ */
 const Dashboard = (() => {
   let _filter = '';
@@ -19,32 +17,84 @@ const Dashboard = (() => {
   ───────────────────────────────────────── */
   function init() {
     document.getElementById('view-dashboard').innerHTML = `
-      <div class="split-panel" style="width:100%">
 
-        <!-- ═══ SIDEBAR ═══ -->
-        <div class="panel-left dash-sidebar">
-          <div class="panel-header-bar" style="padding:14px 14px 10px">
-            <div style="display:flex;align-items:center;justify-content:space-between">
-              <div class="panel-title-sm">Live Fleet</div>
-              <div class="dash-filter-pills">
-                <button class="filter-pill active" data-s="" onclick="Dashboard.setStatusFilter('')">All</button>
-                <button class="filter-pill" data-s="online"  onclick="Dashboard.setStatusFilter('online')">🟢</button>
-                <button class="filter-pill" data-s="idle"    onclick="Dashboard.setStatusFilter('idle')">🟡</button>
-                <button class="filter-pill" data-s="offline" onclick="Dashboard.setStatusFilter('offline')">🔴</button>
+      <!-- ═══ KPI ROW ═══ -->
+      <div class="dash-kpi-row">
+        <div class="kpi-card-v kpi-online">
+          <div class="kpi-card-top">
+            <div class="kpi-card-label">Online</div>
+            <div class="kpi-card-trend up" id="kpi-trend-online" style="display:none"></div>
+          </div>
+          <div class="kpi-card-value" id="kpi-online">0</div>
+        </div>
+        <div class="kpi-card-v kpi-idle">
+          <div class="kpi-card-top">
+            <div class="kpi-card-label">Idle</div>
+            <div class="kpi-card-trend" id="kpi-trend-idle" style="display:none"></div>
+          </div>
+          <div class="kpi-card-value" id="kpi-idle">0</div>
+        </div>
+        <div class="kpi-card-v kpi-offline">
+          <div class="kpi-card-top">
+            <div class="kpi-card-label">Offline</div>
+            <div class="kpi-card-trend" id="kpi-trend-offline" style="display:none"></div>
+          </div>
+          <div class="kpi-card-value" id="kpi-offline">0</div>
+        </div>
+        <div class="kpi-card-v kpi-total">
+          <div class="kpi-card-top">
+            <div class="kpi-card-label">Total Fleet</div>
+          </div>
+          <div class="kpi-card-value" id="kpi-total">0</div>
+        </div>
+      </div>
+
+      <!-- ═══ BODY: MAP + FLEET PANEL ═══ -->
+      <div class="dash-body">
+
+        <!-- MAP CARD -->
+        <div class="map-card">
+          <div class="map-card-header">
+            <div class="map-card-title">
+              <span class="live-pulse"></span>
+              Live Tracking
+            </div>
+            <div class="map-ctrl-btns">
+              <button class="map-ctrl-btn active" onclick="Dashboard.cycleMapStyle()">🗺️ Map</button>
+              <button class="map-ctrl-btn" onclick="LiveMap.fitAll(State.get('positions'))">⊡ Fit</button>
+              <button class="map-ctrl-btn" id="btn-online-filter"
+                onclick="Dashboard.toggleOnlineFilter()">🟢 Online</button>
+            </div>
+          </div>
+          <div style="position:relative;flex:1;overflow:hidden">
+            <div id="main-map" style="width:100%;height:100%"></div>
+
+            <!-- Device Attribute Panel -->
+            <div class="attr-panel" id="attr-panel" style="display:none">
+              <div class="attr-panel-top">
+                <div class="attr-panel-name" id="attr-name">—</div>
+                <div class="attr-panel-meta" id="attr-meta">—</div>
+                <div class="attr-panel-status" id="attr-status"></div>
+                <button class="attr-panel-close" onclick="Dashboard.closeAttrPanel()">×</button>
               </div>
-            </div>
-            <div class="panel-sub-sm" id="fleet-summary" style="margin-top:6px">Loading…</div>
-          </div>
-          <div style="padding:8px 12px 4px">
-            <div class="search-wrap">
-              <span class="search-icon">🔍</span>
-              <input type="text" placeholder="Search vehicles…"
-                     id="device-search" oninput="Dashboard.filterDevices(this.value)">
+              <div class="attr-scroll" id="attr-scroll"></div>
             </div>
           </div>
-          <div class="panel-scroll" id="device-list"></div>
+        </div>
 
-          <!-- Contact popup (inline at bottom of sidebar) -->
+        <!-- FLEET STATUS PANEL -->
+        <div class="fleet-panel">
+          <div class="fleet-panel-header">
+            <div class="fleet-panel-title">Fleet Status</div>
+            <div class="filter-tabs">
+              <button class="filter-tab active" data-s="" onclick="Dashboard.setStatusFilter('')">All</button>
+              <button class="filter-tab" data-s="online"  onclick="Dashboard.setStatusFilter('online')">Online</button>
+              <button class="filter-tab" data-s="offline" onclick="Dashboard.setStatusFilter('offline')">Offline</button>
+            </div>
+          </div>
+          <div class="fleet-list" id="device-list"></div>
+
+          <!-- Contact popup at bottom of fleet panel -->
           <div class="contact-popup" id="contact-popup" style="display:none">
             <div class="contact-popup-header">
               <div class="contact-popup-title" id="cp-title">Vehicle Contact</div>
@@ -54,62 +104,27 @@ const Dashboard = (() => {
           </div>
         </div>
 
-        <!-- ═══ MAP ═══ -->
-        <div class="panel-right" style="position:relative">
-          <div id="main-map" style="width:100%;height:100%"></div>
-
-          <!-- Top stat strip -->
-          <div class="fleet-stat-strip">
-            <div class="fleet-stat-chip"><div class="lbl">Online</div><div class="val c-online" id="s-online">0</div></div>
-            <div class="fleet-stat-chip"><div class="lbl">Idle</div><div class="val c-idle" id="s-idle">0</div></div>
-            <div class="fleet-stat-chip"><div class="lbl">Offline</div><div class="val c-offline" id="s-offline">0</div></div>
-            <div class="fleet-stat-chip"><div class="lbl">Fleet</div><div class="val" id="s-total">0</div></div>
-          </div>
-
-          <!-- Device Attribute Panel -->
-          <div class="attr-panel" id="attr-panel" style="display:none">
-            <div class="attr-panel-top">
-              <div>
-                <div class="attr-panel-name" id="attr-name">—</div>
-                <div class="attr-panel-meta" id="attr-meta">—</div>
-              </div>
-              <button class="attr-panel-close" onclick="Dashboard.closeAttrPanel()">×</button>
-            </div>
-            <div class="attr-scroll">
-              <div class="attr-grid" id="attr-grid"></div>
-            </div>
-          </div>
-
-          <!-- FABs -->
-          <div class="map-fab-group">
-            <button class="map-fab" title="Fit all" onclick="LiveMap.fitAll(State.get('positions'))">⊡</button>
-            <button class="map-fab" onclick="LiveMap.getMap()?.setZoom(LiveMap.getMap().getZoom()+1)">+</button>
-            <button class="map-fab" onclick="LiveMap.getMap()?.setZoom(LiveMap.getMap().getZoom()-1)">−</button>
-            <button class="map-fab" onclick="Dashboard.cycleMapStyle()">🗺️</button>
-          </div>
-        </div>
-
       </div>`;
 
     LiveMap.init('main-map');
 
-    State.on('devices',   () => { renderDeviceList(); updateStats(); });
+    State.on('devices',   () => { renderDeviceList(); updateKPIs(); });
     State.on('positions', () => {
-      renderDeviceList(); updateStats();
+      renderDeviceList(); updateKPIs();
       LiveMap.update(State.get('devices'), State.get('positions'));
       if (_selectedId) refreshAttrPanel(_selectedId);
     });
 
     LiveMap.update(State.get('devices'), State.get('positions'));
     renderDeviceList();
-    updateStats();
+    updateKPIs();
   }
 
   function onShow() { LiveMap.invalidate(); }
   function onHide() { closeAttrPanel(); closeContact(); }
 
   /* ─────────────────────────────────────────
-     MAP STYLE CYCLE
+     MAP STYLE / FILTER
   ───────────────────────────────────────── */
   let _mapStyleIdx = 0;
   const _styles = ['dark', 'satellite', 'streets'];
@@ -118,12 +133,20 @@ const Dashboard = (() => {
     LiveMap.setStyle(_styles[_mapStyleIdx]);
   }
 
+  let _onlineFilter = false;
+  function toggleOnlineFilter() {
+    _onlineFilter = !_onlineFilter;
+    setStatusFilter(_onlineFilter ? 'online' : '');
+    const btn = document.getElementById('btn-online-filter');
+    if (btn) btn.classList.toggle('active', _onlineFilter);
+  }
+
   /* ─────────────────────────────────────────
      DEVICE LIST
   ───────────────────────────────────────── */
   function setStatusFilter(s) {
     _statusFilter = s;
-    document.querySelectorAll('.filter-pill').forEach(b =>
+    document.querySelectorAll('.filter-tab').forEach(b =>
       b.classList.toggle('active', b.dataset.s === s));
     renderDeviceList();
   }
@@ -150,21 +173,11 @@ const Dashboard = (() => {
       const p     = positions[d.id] || {};
       const attrs = p.attributes || {};
       const s     = Fmt.statusClass(d.status);
-      const spd   = p.speed ? Fmt.speed(p.speed) : '—';
-      const ago   = Fmt.ago(p.fixTime);
-      const ign   = attrs.ignition;
-      const bat   = attrs.battery ?? attrs.power;
-      const sat   = attrs.satellites ?? attrs.sat;
-      const isSel = _selectedId === d.id;
-      const isCon = _contactOpenId === d.id;
-
-      const badges = [];
-      if (ign !== undefined)
-        badges.push(`<span class="mini-badge ${ign ? 'mb-green' : 'mb-red'}">${ign ? '🔑 ON' : '🔒 OFF'}</span>`);
-      if (bat !== undefined)
-        badges.push(`<span class="mini-badge mb-yellow">⚡ ${parseFloat(bat).toFixed(1)}V</span>`);
-      if (sat !== undefined)
-        badges.push(`<span class="mini-badge mb-blue">🛰 ${sat}</span>`);
+      const spd   = p.speed ? Fmt.speed(p.speed) : (d.status === 'idle' ? 'Idle' : 'Offline');
+      const driver = (d.attributes||{}).driverName || d.contact || '—';
+      const loc    = d.lastAddress || ((p.latitude) ? `${Fmt.coord(p.latitude)}, ${Fmt.coord(p.longitude)}` : '—');
+      const isSel  = _selectedId === d.id;
+      const isCon  = _contactOpenId === d.id;
 
       return `
         <div class="device-item ${isSel ? 'selected' : ''}"
@@ -172,27 +185,20 @@ const Dashboard = (() => {
           <div class="status-dot ${s}"></div>
           <div class="device-item-info">
             <div class="device-item-name">${d.name}</div>
-            <div class="device-item-meta-row">
-              <span class="device-item-ago">${ago}</span>
-              ${badges.join('')}
-            </div>
+            <div class="device-item-meta">${driver} | ${loc}</div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-            <div class="device-item-speed">${spd}</div>
+            <div class="device-item-speed ${s}">${spd}</div>
             <button class="contact-btn ${isCon ? 'contact-btn-active' : ''}"
-                    title="Vehicle contact & details"
+                    title="Vehicle details"
                     onclick="event.stopPropagation();Dashboard.openContact(${d.id})">👤</button>
           </div>
         </div>`;
     }).join('');
-
-    const on = devices.filter(d => d.status === 'online').length;
-    const summary = document.getElementById('fleet-summary');
-    if (summary) summary.textContent = `${on} online · ${devices.length} total vehicles`;
   }
 
   /* ─────────────────────────────────────────
-     SELECT DEVICE → open attr panel
+     SELECT DEVICE
   ───────────────────────────────────────── */
   function selectDevice(id) {
     _selectedId = id;
@@ -226,145 +232,159 @@ const Dashboard = (() => {
     const p = State.getPosition(id) || {};
     if (!d) return;
 
-    const nameEl = document.getElementById('attr-name');
-    const metaEl = document.getElementById('attr-meta');
-    const grid   = document.getElementById('attr-grid');
-    if (!nameEl || !grid) return;
-
-    nameEl.textContent = d.name;
-    metaEl.textContent = `${d.uniqueId || ''}  ·  Updated ${Fmt.ago(p.fixTime)}`;
+    const nameEl   = document.getElementById('attr-name');
+    const metaEl   = document.getElementById('attr-meta');
+    const statusEl = document.getElementById('attr-status');
+    const scroll   = document.getElementById('attr-scroll');
+    if (!nameEl || !scroll) return;
 
     const a   = p.attributes || {};
-    const spd = p.speed    ? +(p.speed * 1.852).toFixed(1) : 0;
-    const alt = p.altitude ? +p.altitude.toFixed(0)        : 0;
-    const acc = p.accuracy ? +p.accuracy.toFixed(0)        : null;
+    const spd = p.speed ? +(p.speed * 1.852).toFixed(1) : 0;
 
-    const cards = [];
+    nameEl.textContent = d.name;
+    if (metaEl) metaEl.textContent = `${d.uniqueId || ''} · ${Fmt.ago(p.fixTime)}`;
 
-    // ── Always-visible core ──
-    cards.push(AC('🚀', 'Speed',   spd,                   'km/h', spdClr(spd),   true));
-    cards.push(AC('🧭', 'Heading', (p.course||0).toFixed(0)+'°','', 'var(--accent2)', true));
-    cards.push(AC('📍', 'Location',
-      p.latitude ? `${Fmt.coord(p.latitude)}<br>${Fmt.coord(p.longitude)}` : '—',
-      '', 'var(--text)', true, 'sm'));
-
-    // ── Ignition / motion ──
-    if (a.ignition !== undefined)
-      cards.push(AC(a.ignition?'🔑':'🔒', 'Ignition', a.ignition?'ON':'OFF', '',
-        a.ignition?'var(--accent)':'var(--accent3)', true));
-    if (a.motion !== undefined)
-      cards.push(AC(a.motion?'🏃':'🛑', 'Motion', a.motion?'Moving':'Stopped', '',
-        a.motion?'var(--accent)':'var(--idle)', false));
-
-    // ── Power ──
-    const bat  = a.battery      ?? a.externalBattery;
-    const pwr  = a.power        ?? a.voltage;
-    const bat2 = a.battery2     ?? a.internalBattery;
-    if (bat  !== undefined) cards.push(AC('🔋','Battery',   (+bat).toFixed(2), 'V', batClr(bat), false));
-    if (pwr  !== undefined && pwr !== bat)
-      cards.push(AC('⚡','Ext. Power', (+pwr).toFixed(2),  'V', batClr(pwr), false));
-    if (bat2 !== undefined)
-      cards.push(AC('🔋','Int. Batt',  (+bat2).toFixed(1), '%',
-        bat2>30?'var(--accent)':'var(--accent3)', false));
-    if (a.charge !== undefined)
-      cards.push(AC('⚡','Charging', a.charge?'Yes':'No', '',
-        a.charge?'var(--accent)':'var(--muted)', false));
-
-    // ── Fuel ──
-    if (a.fuel !== undefined || a.fuelLevel !== undefined) {
-      const f = a.fuel ?? a.fuelLevel;
-      cards.push(AC('⛽','Fuel', (+f).toFixed(1), f>10?'L':'%',
-        f>20?'var(--accent)':'var(--accent3)', false));
+    // Status pill in header
+    if (statusEl) {
+      const s = d.status || 'offline';
+      const pillCls = s==='online' ? 'attr-pill-on' : s==='idle' ? 'attr-pill-warn' : 'attr-pill-off';
+      const dot = s==='online' ? '●' : s==='idle' ? '◐' : '○';
+      statusEl.innerHTML = `<span class="attr-pill ${pillCls}">${dot} ${s}</span>`;
     }
 
-    // ── Engine ──
-    if (a.rpm !== undefined)
-      cards.push(AC('⚙️','RPM',       Math.round(a.rpm), '', 'var(--accent2)', false));
-    if (a.coolantTemp !== undefined)
-      cards.push(AC('🌡️','Coolant',  (+a.coolantTemp).toFixed(1), '°C',
-        a.coolantTemp>100?'var(--accent3)':'var(--accent)', false));
-    if (a.throttle !== undefined)
-      cards.push(AC('🎚️','Throttle', (+a.throttle).toFixed(1), '%', 'var(--warn)', false));
-    if (a.obdSpeed !== undefined)
-      cards.push(AC('🏎️','OBD Speed',(+a.obdSpeed).toFixed(0), 'km/h', spdClr(a.obdSpeed), false));
-    if (a.hours !== undefined)
-      cards.push(AC('⏱️','Eng. Hrs', (a.hours/3600).toFixed(1), 'h', 'var(--text)', false));
+    /* ── PRIMARY METRICS ─────────────────── */
+    const metrics = [];
 
-    // ── GPS quality ──
-    const sat  = a.satellites ?? a.sat;
+    // Speed — always first, highlighted
+    metrics.push(M('Speed', spdFmt(spd), 'km/h', spd > 0 ? spdClr(spd) : '', spd > 0 ? 'lg' : ''));
+
+    // Heading
+    if (p.course !== undefined)
+      metrics.push(M('Heading', headingLabel(p.course), '', '', ''));
+
+    // Ignition — pill style
+    if (a.ignition !== undefined)
+      metrics.push(M('Ignition', null, '', '', '', a.ignition));
+
+    // Motion
+    if (a.motion !== undefined)
+      metrics.push(M('Motion', a.motion ? 'Moving' : 'Stopped', '', '', a.motion ? 'move' : ''));
+
+    // Battery / power
+    const bat = a.battery ?? a.externalBattery ?? a.power ?? a.voltage;
+    if (bat !== undefined)
+      metrics.push(M('Battery', (+bat).toFixed(2), 'V', batClr(bat), ''));
+
+    // Fuel
+    const fuel = a.fuel ?? a.fuelLevel;
+    if (fuel !== undefined)
+      metrics.push(M('Fuel', (+fuel).toFixed(1), fuel > 10 ? 'L' : '%',
+        fuel > 20 ? 'var(--success)' : 'var(--warn)', ''));
+
+    // Satellites
+    const sat = a.satellites ?? a.sat;
     if (sat !== undefined)
-      cards.push(AC('🛰️','Satellites', sat, '',
-        sat>=6?'var(--accent)':sat>=3?'var(--warn)':'var(--accent3)', false));
-    if (a.hdop !== undefined)
-      cards.push(AC('📶','HDOP', (+a.hdop).toFixed(2), '',
-        a.hdop<=1.5?'var(--accent)':a.hdop<=3?'var(--warn)':'var(--accent3)', false));
-    if (a.rssi !== undefined)
-      cards.push(AC('📡','Signal', a.rssi, 'dBm', 'var(--accent2)', false));
-    if (acc !== null && acc > 0)
-      cards.push(AC('🎯','Accuracy', acc, 'm',
-        acc<=10?'var(--accent)':acc<=50?'var(--warn)':'var(--accent3)', false));
-    if (alt !== 0)
-      cards.push(AC('⛰️','Altitude', alt, 'm', 'var(--muted)', false));
+      metrics.push(M('Satellites', sat, '', sat>=6?'var(--success)':sat>=3?'var(--warn)':'var(--danger)', ''));
 
-    // ── Trip / odometer ──
+    // RPM
+    if (a.rpm !== undefined)
+      metrics.push(M('RPM', Math.round(a.rpm), '', '', ''));
+
+    // Coolant temp
+    if (a.coolantTemp !== undefined)
+      metrics.push(M('Coolant', (+a.coolantTemp).toFixed(1), '°C',
+        a.coolantTemp>100 ? 'var(--danger)' : '', ''));
+
+    // Odometer
     if (a.totalDistance !== undefined)
-      cards.push(AC('🛣️','Total KM', (a.totalDistance/1000).toFixed(0), 'km', 'var(--accent)', false));
-    if (a.distance !== undefined)
-      cards.push(AC('📏','Trip KM', (a.distance/1000).toFixed(2), 'km', 'var(--text)', false));
+      metrics.push(M('Odometer', (a.totalDistance/1000).toFixed(0), 'km', 'var(--primary)', ''));
 
-    // ── Environment ──
-    const tmp = a.temp ?? a.temperature ?? a.temp1;
-    if (tmp !== undefined)
-      cards.push(AC('🌡️','Temp', (+tmp).toFixed(1), '°C',
-        tmp>40?'var(--accent3)':'var(--accent)', false));
+    // Location coords — compact
+    if (p.latitude)
+      metrics.push(M('Location', `${p.latitude.toFixed(5)}, ${p.longitude.toFixed(5)}`, '', '', 'mono'));
 
-    // ── Driver ──
+    /* ── EXTRA CHIPS (unknown / secondary attrs) ── */
+    const KNOWN = new Set(['ignition','motion','battery','externalBattery','power','voltage',
+      'fuel','fuelLevel','rpm','coolantTemp','throttle','obdSpeed','hours','totalDistance',
+      'distance','satellites','sat','hdop','pdop','rssi','charge','alarm','driverUniqueId',
+      'driver','battery2','internalBattery','temp','temperature','temp1','index','event',
+      'bleTemperature','io']);
+
+    const chips = [];
+    // HDOP, accuracy — useful but secondary
+    if (a.hdop !== undefined)
+      chips.push(chip('HDOP', (+a.hdop).toFixed(2)));
+    if (p.accuracy && p.accuracy > 0)
+      chips.push(chip('Acc', (+p.accuracy).toFixed(0)+'m'));
+    if (p.altitude && p.altitude !== 0)
+      chips.push(chip('Alt', (+p.altitude).toFixed(0)+'m'));
+    if (a.rssi !== undefined)
+      chips.push(chip('Signal', a.rssi+'dBm'));
     if (a.driverUniqueId || a.driver)
-      cards.push(AC('🧑‍✈️','Driver ID', a.driverUniqueId||a.driver, '', 'var(--accent2)', false, 'sm'));
-
-    // ── Alarm ──
+      chips.push(chip('Driver', a.driverUniqueId||a.driver));
     if (a.alarm)
-      cards.push(AC('🚨','Alarm', a.alarm, '', 'var(--accent3)', false, 'sm'));
-
-    // ── Unknown extras ──
-    const KNOWN = new Set([
-      'ignition','motion','battery','externalBattery','power','voltage',
-      'fuel','fuelLevel','rpm','coolantTemp','throttle','obdSpeed','hours',
-      'totalDistance','distance','satellites','sat','hdop','pdop','rssi',
-      'signalStrength','charge','alarm','driverUniqueId','driver','io',
-      'battery2','internalBattery','temp','temperature','temp1',
-      'index','event','bleTemperature',
-    ]);
+      chips.push(chip('Alarm', a.alarm, true));
+    if (a.obdSpeed !== undefined)
+      chips.push(chip('OBD Spd', (+a.obdSpeed).toFixed(0)+'km/h'));
+    if (a.throttle !== undefined)
+      chips.push(chip('Throttle', (+a.throttle).toFixed(0)+'%'));
+    if (a.hours !== undefined)
+      chips.push(chip('Eng.Hrs', (a.hours/3600).toFixed(1)+'h'));
+    // Unknown extras
     Object.entries(a).forEach(([k, v]) => {
-      if (!KNOWN.has(k) && v !== undefined && v !== null && String(v).trim() !== '')
-        cards.push(AC('📌', k, String(v), '', 'var(--muted)', false, 'sm'));
+      if (KNOWN.has(k) || v === undefined || v === null || String(v).trim() === '') return;
+      const cls = v === true ? 'ev-true' : v === false ? 'ev-false'
+        : typeof v === 'number' ? 'ev-num' : '';
+      chips.push(`<span class="attr-extra-chip"><span class="ek">${k}</span><span class="ev ${cls}">${v}</span></span>`);
     });
 
-    grid.innerHTML = cards.join('');
+    scroll.innerHTML = `
+      <div class="attr-metrics">${metrics.join('')}</div>
+      ${chips.length ? `<div class="attr-extras">${chips.join('')}</div>` : ''}
+    `;
   }
 
-  // Attribute Card builder
-  function AC(icon, label, value, unit, color, primary=false, size='md') {
-    const vClass = size==='sm' ? 'attr-val-sm' : primary ? 'attr-val-lg' : 'attr-val';
-    return `<div class="attr-card${primary?' attr-card-primary':''}">
-      <div class="attr-icon">${icon}</div>
-      <div class="attr-label">${label}</div>
-      <div class="${vClass}" style="color:${color}">${value}</div>
-      ${unit?`<div class="attr-unit">${unit}</div>`:''}
+  /* Build a metric cell */
+  function M(label, value, unit, color, size, ignition) {
+    if (ignition !== undefined) {
+      const cls = ignition ? 'attr-pill-on' : 'attr-pill-off';
+      const txt = ignition ? '● ON' : '○ OFF';
+      return `<div class="attr-metric">
+        <div class="attr-metric-label">${label}</div>
+        <span class="attr-pill ${cls}">${txt}</span>
+      </div>`;
+    }
+    const valClass = 'attr-metric-value' + (size ? ' '+size : '');
+    return `<div class="attr-metric">
+      <div class="attr-metric-label">${label}</div>
+      <div class="${valClass}"${color?` style="color:${color}"`:''}>${value}</div>
+      ${unit ? `<div class="attr-metric-unit">${unit}</div>` : ''}
     </div>`;
   }
 
+  /* Build a chip for extras row */
+  function chip(label, value, danger=false) {
+    return `<span class="attr-extra-chip">
+      <span class="ek">${label}</span>
+      <span class="ev${danger?' ev-true':''}"> ${value}</span>
+    </span>`;
+  }
+
+  function spdFmt(s) { return s > 0 ? s.toFixed(0) : '0'; }
   function spdClr(s) {
-    if (!s||s===0) return 'var(--muted)';
-    if (s<80)      return 'var(--accent)';
-    if (s<110)     return 'var(--warn)';
-    return 'var(--accent3)';
+    if (s < 60)  return 'var(--success)';
+    if (s < 100) return 'var(--warn)';
+    return 'var(--danger)';
   }
   function batClr(v) {
     const n = parseFloat(v);
-    if (n>=12.4) return 'var(--accent)';
-    if (n>=11.8) return 'var(--warn)';
-    return 'var(--accent3)';
+    if (n >= 12.4) return 'var(--success)';
+    if (n >= 11.8) return 'var(--warn)';
+    return 'var(--danger)';
+  }
+  function headingLabel(deg) {
+    const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+    return dirs[Math.round((deg||0)/45)%8] + ' ' + (deg||0).toFixed(0)+'°';
   }
 
   /* ─────────────────────────────────────────
@@ -403,7 +423,6 @@ const Dashboard = (() => {
     const notes   = fv.notes || a.notes || '';
 
     bodyEl.innerHTML = `
-      <!-- ── Vehicle card ── -->
       <div class="cp-vehicle-hero">
         <div class="cp-plate-badge">${plate}</div>
         <div class="cp-veh-name">${make}${model2?' '+model2:''}</div>
@@ -415,17 +434,13 @@ const Dashboard = (() => {
           </span>
         </div>
       </div>
-
-      <!-- ── Contact rows ── -->
       <div class="cp-contact-rows">
-        ${phone   ?cpRow('📞','Vehicle Phone', phone,  `tel:${phone}`)  :''}
-        ${contact ?cpRow('👤','Contact',       contact, null)           :''}
-        ${driver  ?cpRow('🧑‍✈️','Driver',     driver,  null)           :''}
-        ${dPhone  ?cpRow('📱','Driver Phone',  dPhone, `tel:${dPhone}`) :''}
-        ${!phone&&!contact&&!driver?`<div style="font-size:12px;color:var(--muted);padding:4px 0">No contact info — add it in Device settings</div>`:''}
+        ${phone   ?cpRow('📞','Vehicle Phone',phone,  `tel:${phone}`)  :''}
+        ${contact ?cpRow('👤','Contact',      contact, null)           :''}
+        ${driver  ?cpRow('🧑‍✈️','Driver',   driver,  null)           :''}
+        ${dPhone  ?cpRow('📱','Driver Phone', dPhone, `tel:${dPhone}`) :''}
+        ${!phone&&!contact&&!driver?`<div style="font-size:12px;color:var(--muted);padding:4px 0">No contact info stored</div>`:''}
       </div>
-
-      <!-- ── Details grid ── -->
       <div class="cp-details-grid">
         <div class="cp-detail"><span class="cp-det-lbl">IMEI</span>
           <span class="cp-det-val mono">${d.uniqueId||'—'}</span></div>
@@ -440,25 +455,16 @@ const Dashboard = (() => {
         ${insExp!=='—'?`<div class="cp-detail"><span class="cp-det-lbl">Ins. Expiry</span>
           <span class="cp-det-val${_expSoon(fv.insurance_expiry)?' warn-text':''}">${insExp}</span></div>`:''}
       </div>
-
       ${notes?`<div class="cp-notes">📝 ${notes}</div>`:''}
-
-      <!-- ── Actions ── -->
       <div class="cp-actions">
         <button class="btn btn-secondary btn-sm"
-                onclick="Dashboard.selectDevice(${id});Dashboard.closeContact()">
-          🗺️ Focus
-        </button>
-        <button class="btn btn-secondary btn-sm" onclick="Views.show('playback')">
-          ⏮️ History
-        </button>
-        <button class="btn btn-secondary btn-sm" onclick="Views.show('devices')">
-          ✏️ Edit
-        </button>
+                onclick="Dashboard.selectDevice(${id});Dashboard.closeContact()">🗺️ Focus</button>
+        <button class="btn btn-secondary btn-sm" onclick="Views.show('playback')">⏮️ History</button>
+        <button class="btn btn-secondary btn-sm" onclick="Views.show('devices')">✏️ Edit</button>
       </div>`;
 
     popup.style.display = 'flex';
-    renderDeviceList(); // refresh to highlight contact-btn
+    renderDeviceList();
   }
 
   function cpRow(icon, label, value, href) {
@@ -486,20 +492,25 @@ const Dashboard = (() => {
   }
 
   /* ─────────────────────────────────────────
-     STATS
+     KPI CARDS
   ───────────────────────────────────────── */
-  function updateStats() {
-    const c  = State.statusCounts();
-    const el = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
-    el('s-online',  c.online);
-    el('s-idle',    c.idle);
-    el('s-offline', c.offline);
-    el('s-total',   State.get('devices').length);
+  function updateKPIs() {
+    const c = State.statusCounts();
+    const total = State.get('devices').length;
+    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    set('kpi-online',  c.online);
+    set('kpi-idle',    c.idle);
+    set('kpi-offline', c.offline);
+    set('kpi-total',   total);
+    set('kpi-trend-online',  `↑ ${c.online}`);
+    set('kpi-trend-idle',    `${c.idle}`);
+    set('kpi-trend-offline', `${c.offline}`);
+    set('kpi-trend-total',   `+${total}`);
   }
 
   return {
     register, filterDevices, setStatusFilter,
-    selectDevice, onDeviceClick, cycleMapStyle,
+    selectDevice, onDeviceClick, cycleMapStyle, toggleOnlineFilter,
     openContact, closeContact, closeAttrPanel,
   };
 })();

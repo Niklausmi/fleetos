@@ -1,160 +1,218 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FleetOS — Fleet Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap"
-    rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/views.css">
 </head>
-
 <body>
 
-  <!-- ══ LOGIN ══════════════════════════════════════════════════ -->
-  <div id="login-screen">
-    <div class="login-card">
-      <div class="login-logo">Fleet<span>OS</span></div>
-      <div class="login-tagline">Traccar Fleet Intelligence</div>
-      <div class="field"><label>Server URL</label>
-        <input type="text" id="login-server" value="http://localhost:8082" placeholder="http://traccar-server:8082">
-      </div>
-      <div class="field"><label>Email</label>
-        <input type="email" id="login-email" placeholder="admin@example.com">
-      </div>
-      <div class="field"><label>Password</label>
-        <input type="password" id="login-pass" placeholder="••••••••">
-      </div>
-      <div id="login-error" class="login-error" style="display:none"></div>
-      <button class="btn-primary btn-full" id="login-btn" onclick="Auth.login()">Connect to Fleet</button>
-      <div class="login-links">
-        <a onclick="Auth.useDemo()">Use Demo Server</a>
-      </div>
+<!-- ══ LOGIN ═══════════════════════════════════════════════════ -->
+<div id="login-screen" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">Fleet<span>OS</span></div>
+    <div class="login-tagline">Traccar Fleet Intelligence Platform</div>
+    <div class="field">
+      <label>Server URL</label>
+      <input type="text" id="login-server" value="http://localhost:8082" placeholder="http://traccar-server:8082">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="admin@example.com">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="••••••••">
+    </div>
+    <div id="login-error" class="login-error" style="display:none"></div>
+    <button class="btn btn-primary btn-full btn-lg" id="login-btn" onclick="Auth.login()">
+      Connect to Fleet
+    </button>
+    <div class="login-links">
+      <a onclick="Auth.useDemo()">Use Demo Server</a>
     </div>
   </div>
+</div>
 
-  <!-- ══ APP SHELL ═══════════════════════════════════════════════ -->
-  <div id="app" style="display:none">
-    <div class="app-layout">
+<!-- ══ APP SHELL ════════════════════════════════════════════════ -->
+<div id="app" style="display:none">
+  <div class="app-layout">
 
-      <!-- SIDEBAR -->
-      <aside class="sidebar" id="sidebar">
-        <div class="sidebar-logo">F<span>O</span></div>
-        <nav class="sidebar-nav">
-          <button class="nav-btn active" data-view="dashboard" onclick="Views.show('dashboard')">
-            <span class="nav-icon">🗺️</span><span class="nav-label">Live Map</span>
-          </button>
-          <button class="nav-btn" data-view="events" onclick="Views.show('events')">
-            <span class="nav-icon">🔔</span><span class="nav-label">Events</span>
-            <span class="nav-badge" id="events-badge" style="display:none">0</span>
-          </button>
-          <button class="nav-btn" data-view="playback" onclick="Views.show('playback')">
-            <span class="nav-icon">⏮️</span><span class="nav-label">Playback</span>
-          </button>
-          <button class="nav-btn" data-view="reports" onclick="Views.show('reports')">
-            <span class="nav-icon">📊</span><span class="nav-label">Reports</span>
-          </button>
-          <button class="nav-btn" data-view="devices" onclick="Views.show('devices')">
-            <span class="nav-icon">📡</span><span class="nav-label">Devices</span>
-          </button>
-          <button class="nav-btn" data-view="geofences" onclick="Views.show('geofences')">
-            <span class="nav-icon">📐</span><span class="nav-label">Zones</span>
-          </button>
-          <button class="nav-btn" data-view="notifications" onclick="Views.show('notifications')">
-            <span class="nav-icon">⚡</span><span class="nav-label">Alerts</span>
-          </button>
-          <button class="nav-btn" data-view="users" onclick="Views.show('users')">
-            <span class="nav-icon">👥</span><span class="nav-label">Users</span>
-          </button>
-          <button class="nav-btn" data-view="drivers" onclick="Views.show('drivers')">
-            <span class="nav-icon">🧑‍✈️</span><span class="nav-label">Drivers</span>
-          </button>
-        </nav>
-        <div class="sidebar-footer">
-          <button class="nav-btn" data-view="settings" onclick="Views.show('settings')">
-            <span class="nav-icon">⚙️</span><span class="nav-label">Settings</span>
-          </button>
-          <div class="user-chip" id="user-chip" onclick="Views.show('settings')">
-            <div class="user-avatar" id="user-avatar">A</div>
-            <div class="user-info">
-              <div class="user-name" id="user-name">Admin</div>
-              <div class="user-role" id="user-role">Administrator</div>
-            </div>
+    <!-- TOP BAR (spans full width) -->
+    <header class="topbar">
+      <!-- Brand (aligns with sidebar width) -->
+      <div class="topbar-brand">
+        <div class="topbar-brand-icon">F</div>
+        <span class="topbar-brand-name">Fleet<span>OS</span></span>
+      </div>
+
+      <!-- Page info + search -->
+      <div class="topbar-left">
+        <button class="topbar-hamburger" onclick="UI.toggleSidebar()" title="Toggle sidebar">
+          ☰
+        </button>
+        <div class="topbar-page-info">
+          <div class="topbar-page-title" id="topbar-title">Dashboard</div>
+          <div class="topbar-breadcrumb">
+            <span>FleetOS</span>
+            <span class="sep">›</span>
+            <span id="topbar-breadcrumb">Overview</span>
           </div>
         </div>
-      </aside>
-
-      <!-- MAIN AREA — views injected here -->
-      <main class="main-area" id="main-area">
-
-        <!-- DASHBOARD -->
-        <div class="view active" id="view-dashboard"></div>
-        <!-- EVENTS -->
-        <div class="view" id="view-events"></div>
-        <!-- PLAYBACK -->
-        <div class="view" id="view-playback"></div>
-        <!-- REPORTS -->
-        <div class="view" id="view-reports"></div>
-        <!-- DEVICES -->
-        <div class="view" id="view-devices"></div>
-        <!-- GEOFENCES -->
-        <div class="view" id="view-geofences"></div>
-        <!-- NOTIFICATIONS -->
-        <div class="view" id="view-notifications"></div>
-        <!-- USERS -->
-        <div class="view" id="view-users"></div>
-        <!-- DRIVERS -->
-        <div class="view" id="view-drivers"></div>
-        <!-- SETTINGS -->
-        <div class="view" id="view-settings"></div>
-
-      </main>
-    </div>
-  </div>
-
-  <!-- ══ MODAL SYSTEM ════════════════════════════════════════════ -->
-  <div class="modal-overlay" id="modal-overlay" onclick="Modal.close()">
-    <div class="modal-box" id="modal-box" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <div class="modal-title" id="modal-title"></div>
-        <button class="modal-close" onclick="Modal.close()">×</button>
       </div>
-      <div class="modal-body" id="modal-body"></div>
-      <div class="modal-footer" id="modal-footer"></div>
-    </div>
+
+      <!-- Right actions -->
+      <div class="topbar-right">
+        <div class="topbar-search">
+          <span class="topbar-search-icon">🔍</span>
+          <input type="text" id="global-search" placeholder="Search vehicles, drivers..." oninput="UI.globalSearch(this.value)">
+        </div>
+
+        <!-- Theme toggle -->
+        <button class="topbar-icon-btn" id="theme-btn" onclick="UI.toggleTheme()" title="Toggle theme">
+          <span id="theme-icon">🌙</span>
+        </button>
+
+        <!-- Notifications -->
+        <button class="topbar-icon-btn" onclick="Views.show('notifications')" title="Notifications">
+          🔔
+          <span class="dot" id="notif-dot" style="display:none">0</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-nav">
+        <div class="nav-group-label">Monitor</div>
+        <button class="nav-btn active" data-view="dashboard" onclick="Views.show('dashboard')">
+          <span class="nav-icon">🗺️</span>
+          <span class="nav-label">Live Map</span>
+        </button>
+        <button class="nav-btn" data-view="events" onclick="Views.show('events')">
+          <span class="nav-icon">🔔</span>
+          <span class="nav-label">Events</span>
+          <span class="nav-badge" id="events-badge" style="display:none">0</span>
+        </button>
+        <button class="nav-btn" data-view="notifications" onclick="Views.show('notifications')">
+          <span class="nav-icon">⚡</span>
+          <span class="nav-label">Alerts</span>
+        </button>
+
+        <div class="nav-group-label">Analyze</div>
+        <button class="nav-btn" data-view="playback" onclick="Views.show('playback')">
+          <span class="nav-icon">⏮️</span>
+          <span class="nav-label">Playback</span>
+        </button>
+        <button class="nav-btn" data-view="reports" onclick="Views.show('reports')">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Reports</span>
+        </button>
+
+        <div class="nav-group-label">Manage</div>
+        <button class="nav-btn" data-view="devices" onclick="Views.show('devices')">
+          <span class="nav-icon">📡</span>
+          <span class="nav-label">Devices</span>
+        </button>
+        <button class="nav-btn" data-view="geofences" onclick="Views.show('geofences')">
+          <span class="nav-icon">📐</span>
+          <span class="nav-label">Zones</span>
+        </button>
+        <button class="nav-btn" data-view="drivers" onclick="Views.show('drivers')">
+          <span class="nav-icon">🧑‍✈️</span>
+          <span class="nav-label">Drivers</span>
+        </button>
+        <button class="nav-btn" data-view="users" onclick="Views.show('users')">
+          <span class="nav-icon">👥</span>
+          <span class="nav-label">Users</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="nav-btn" data-view="settings" onclick="Views.show('settings')">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-label">Settings</span>
+        </button>
+        <div class="user-chip" id="user-chip" onclick="Views.show('settings')">
+          <div class="user-avatar" id="user-avatar"
+            style="background:linear-gradient(135deg,#6366f1,#818cf8)">A</div>
+          <div class="user-info">
+            <div class="user-name" id="user-name">Admin</div>
+            <div class="user-role" id="user-role">Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN AREA -->
+    <main class="main-area" id="main-area">
+      <div class="view active" id="view-dashboard"></div>
+      <div class="view" id="view-events"></div>
+      <div class="view" id="view-playback"></div>
+      <div class="view" id="view-reports"></div>
+      <div class="view" id="view-devices"></div>
+      <div class="view" id="view-geofences"></div>
+      <div class="view" id="view-notifications"></div>
+      <div class="view" id="view-users"></div>
+      <div class="view" id="view-drivers"></div>
+      <div class="view" id="view-settings"></div>
+    </main>
+
   </div>
+</div>
 
-  <!-- ══ TOAST ════════════════════════════════════════════════════ -->
-  <div id="toast-wrap"></div>
+<!-- ══ MODAL ════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay" onclick="Modal.close()">
+  <div class="modal-box" id="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title"></div>
+      <button class="modal-close" onclick="Modal.close()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
 
-  <!-- ══ SCRIPTS — order matters ════════════════════════════════ -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/state.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/views.js"></script>
-  <script src="js/map.js"></script>
-  <script src="js/websocket.js"></script>
-  <script src="pages/dashboard.js"></script>
-  <script src="pages/events.js"></script>
-  <script src="pages/playback.js"></script>
-  <script src="pages/reports.js"></script>
-  <script src="pages/devices.js"></script>
-  <script src="pages/geofences.js"></script>
-  <script src="pages/notifications.js"></script>
-  <script src="pages/users.js"></script>
-  <script src="pages/drivers.js"></script>
-  <script src="pages/settings.js"></script>
-  <script src="js/app.js"></script>
+<!-- ══ TOAST ════════════════════════════════════════════════════ -->
+<div id="toast-wrap"></div>
+
+<!-- ══ SCRIPTS ══════════════════════════════════════════════════ -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/api.js"></script>
+<script src="js/state.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/views.js"></script>
+<script src="js/map.js"></script>
+<script src="js/websocket.js"></script>
+<script src="pages/dashboard.js"></script>
+<script src="pages/events.js"></script>
+<script src="pages/playback.js"></script>
+<script src="pages/reports.js"></script>
+<script src="pages/devices.js"></script>
+<script src="pages/geofences.js"></script>
+<script src="pages/notifications.js"></script>
+<script src="pages/users.js"></script>
+<script src="pages/drivers.js"></script>
+<script src="pages/settings.js"></script>
+<script src="js/app.js"></script>
+
+<!-- Theme toggle — pure CSS, no JS dependency -->
+<script>
+  // Persist theme across reload
+  (function() {
+    const saved = localStorage.getItem('fleetos-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    document.getElementById('theme-icon').textContent = saved === 'dark' ? '🌙' : '☀️';
+  })();
+</script>
+
 </body>
-
 </html>

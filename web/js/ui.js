@@ -120,3 +120,59 @@ function avatarEl(name, size = 36) {
   const color = Fmt.avatarColor(name);
   return `<div class="user-avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.38)}px;background:${color}">${Fmt.initial(name)}</div>`;
 }
+
+/* ── UI NAMESPACE (theme, sidebar, search) ── */
+const UI = (() => {
+
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('fleetos-theme', next);
+    const icon = document.getElementById('theme-icon');
+    if (icon) icon.textContent = next === 'dark' ? '🌙' : '☀️';
+    // Re-invalidate any Leaflet map tiles so they refresh sizing
+    setTimeout(() => {
+      if (window.MapMgr && MapMgr._map) MapMgr._map.invalidateSize();
+    }, 220);
+  }
+
+  let _sidebarCollapsed = false;
+  function toggleSidebar() {
+    _sidebarCollapsed = !_sidebarCollapsed;
+    const sidebar = document.getElementById('sidebar');
+    const layout  = document.querySelector('.app-layout');
+    if (_sidebarCollapsed) {
+      sidebar.style.width = '56px';
+      layout.style.gridTemplateColumns = '56px 1fr';
+      sidebar.querySelectorAll('.nav-label, .user-info, .nav-group-label').forEach(el => {
+        el.style.display = 'none';
+      });
+    } else {
+      sidebar.style.width = '';
+      layout.style.gridTemplateColumns = '';
+      sidebar.querySelectorAll('.nav-label, .user-info, .nav-group-label').forEach(el => {
+        el.style.display = '';
+      });
+    }
+    setTimeout(() => {
+      if (window.MapMgr && MapMgr._map) MapMgr._map.invalidateSize();
+    }, 200);
+  }
+
+  function globalSearch(query) {
+    // Delegate to active page's search handler if present
+    if (window._activeSearchHandler) window._activeSearchHandler(query);
+  }
+
+  // Update topbar title + breadcrumb
+  function setPage(title, breadcrumb) {
+    const t = document.getElementById('topbar-title');
+    const b = document.getElementById('topbar-breadcrumb');
+    if (t) t.textContent = title;
+    if (b) b.textContent = breadcrumb;
+  }
+
+  return { toggleTheme, toggleSidebar, globalSearch, setPage };
+})();
