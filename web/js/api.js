@@ -47,7 +47,7 @@ const API = (() => {
     getSession: () => get('/session'),
 
     /* ── Devices ──────────────────────── */
-    getDevices: () => get('/devices'),
+    getDevices: (userId) => get('/devices' + (userId ? `?userId=${userId}` : '')),
     getDevice: (id) => get(`/devices/${id}`),
     createDevice: (data) => post('/devices', data),
     updateDevice: (id, data) => put(`/devices/${id}`, data),
@@ -66,13 +66,13 @@ const API = (() => {
     deleteUser: (id) => del(`/users/${id}`),
 
     /* ── Groups ───────────────────────── */
-    getGroups: () => get('/groups'),
+    getGroups: (userId) => get('/groups' + (userId ? `?userId=${userId}` : '')),
     createGroup: (data) => post('/groups', data),
     updateGroup: (id, data) => put(`/groups/${id}`, data),
     deleteGroup: (id) => del(`/groups/${id}`),
 
     /* ── Geofences ────────────────────── */
-    getGeofences: () => get('/geofences'),
+    getGeofences: (userId) => get('/geofences' + (userId ? `?userId=${userId}` : '')),
     createGeofence: (data) => post('/geofences', data),
     updateGeofence: (id, data) => put(`/geofences/${id}`, data),
     deleteGeofence: (id) => del(`/geofences/${id}`),

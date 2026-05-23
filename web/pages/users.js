@@ -204,64 +204,282 @@ const UsersView = (() => {
     } catch (e) { Toast.error(e.message); }
   }
 
-  function openPermissions(userId) {
+  async function openPermissions(userId) {
     const u = State.get('users').find(x => x.id === userId);
-    const devices = State.get('devices');
-    const groups  = State.get('groups');
-    const geofences = State.get('geofences');
-
+    
     Modal.open({
-      title: `Permissions — ${u?.name}`,
+      title: `Permissions — ${u?.name || 'User'}`,
       size: 'lg',
       body: `
-        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
-          Select which devices, groups and zones this user can access.
-        </p>
-
-        <div class="field">
-          <label>Devices</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:180px;overflow-y:auto;padding:4px">
-            ${devices.map(d => `
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;text-transform:none;font-size:13px;letter-spacing:0;color:var(--text)">
-                <input type="checkbox" class="perm-device" data-id="${d.id}" style="width:auto">
-                📡 ${d.name}
-              </label>`).join('')}
-          </div>
-        </div>
-
-        <div class="field-row cols-2">
-          <div class="field">
-            <label>Groups</label>
-            ${groups.map(g => `
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px;font-size:13px;text-transform:none;letter-spacing:0;color:var(--text)">
-                <input type="checkbox" class="perm-group" data-id="${g.id}" style="width:auto"> 📁 ${g.name}
-              </label>`).join('') || '<div style="color:var(--muted);font-size:12px">No groups</div>'}
-          </div>
-          <div class="field">
-            <label>Geofences / Zones</label>
-            ${geofences.map(g => `
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px;font-size:13px;text-transform:none;letter-spacing:0;color:var(--text)">
-                <input type="checkbox" class="perm-geo" data-id="${g.id}" style="width:auto"> 📐 ${g.name}
-              </label>`).join('') || '<div style="color:var(--muted);font-size:12px">No zones</div>'}
-          </div>
+        <div class="empty-state">
+          <div class="empty-icon">🔑</div>
+          <div class="empty-title">Loading permissions…</div>
         </div>`,
-      footer: `
-        <button class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
-        <button class="btn btn-primary" onclick="UsersView.savePermissions(${userId})">Save Permissions</button>`,
+      footer: `<button class="btn btn-secondary" onclick="Modal.close()">Cancel</button>`
     });
-  }
-
-  async function savePermissions(userId) {
-    const perms = [];
-    document.querySelectorAll('.perm-device:checked').forEach(el => perms.push({ userId, deviceId: parseInt(el.dataset.id) }));
-    document.querySelectorAll('.perm-group:checked').forEach(el => perms.push({ userId, groupId: parseInt(el.dataset.id) }));
-    document.querySelectorAll('.perm-geo:checked').forEach(el => perms.push({ userId, geofenceId: parseInt(el.dataset.id) }));
 
     try {
-      await Promise.all(perms.map(p => API.linkPermission(p)));
+      const [userDevices, userGroups, userGeofences] = await Promise.all([
+        API.getDevices(userId),
+        API.getGroups(userId),
+        API.getGeofences(userId),
+      ]);
+
+      const devices = State.get('devices') || [];
+      const groups  = State.get('groups') || [];
+      const geofences = State.get('geofences') || [];
+
+      const userDeviceIds = new Set(userDevices.map(d => d.id));
+      const userGroupIds = new Set(userGroups.map(g => g.id));
+      const userGeofenceIds = new Set(userGeofences.map(g => g.id));
+
+      Modal.open({
+        title: `Permissions — ${u?.name || 'User'}`,
+        size: 'lg',
+        body: `
+          <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
+            Select which devices, groups and zones this user can access.
+          </p>
+
+          <div class="field-row cols-2" style="margin-bottom: 14px">
+            <div class="field">
+              <label>Devices</label>
+              <div class="multiselect-dropdown" id="dropdown-devices">
+                <div class="multiselect-header" id="header-devices">Select devices...</div>
+                <div class="multiselect-body">
+                  <div class="multiselect-search-wrap">
+                    <input type="text" class="multiselect-search" id="search-devices" placeholder="Search devices...">
+                  </div>
+                  <div class="multiselect-list" id="list-devices">
+                    ${devices.map(d => {
+                      const checked = userDeviceIds.has(d.id) ? 'checked' : '';
+                      return `
+                      <label class="multiselect-item" data-text="${d.name.toLowerCase()}">
+                        <input type="checkbox" class="perm-device" data-id="${d.id}" ${checked}>
+                        📡 ${d.name}
+                      </label>`;
+                    }).join('') || '<div style="color:var(--muted);font-size:12px;padding:8px">No devices available</div>'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Geofences / Zones</label>
+              <div class="multiselect-dropdown" id="dropdown-geofences">
+                <div class="multiselect-header" id="header-geofences">Select zones...</div>
+                <div class="multiselect-body">
+                  <div class="multiselect-search-wrap">
+                    <input type="text" class="multiselect-search" id="search-geofences" placeholder="Search zones...">
+                  </div>
+                  <div class="multiselect-list" id="list-geofences">
+                    ${geofences.map(g => {
+                      const checked = userGeofenceIds.has(g.id) ? 'checked' : '';
+                      return `
+                      <label class="multiselect-item" data-text="${g.name.toLowerCase()}">
+                        <input type="checkbox" class="perm-geo" data-id="${g.id}" ${checked}>
+                        📐 ${g.name}
+                      </label>`;
+                    }).join('') || '<div style="color:var(--muted);font-size:12px;padding:8px">No zones available</div>'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Groups</label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;max-height:120px;overflow-y:auto;padding:4px">
+              ${groups.map(g => {
+                const checked = userGroupIds.has(g.id) ? 'checked' : '';
+                return `
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;text-transform:none;font-size:13px;letter-spacing:0;color:var(--text)">
+                  <input type="checkbox" class="perm-group" data-id="${g.id}" ${checked} style="width:auto"> 📁 ${g.name}
+                </label>`;
+              }).join('') || '<div style="color:var(--muted);font-size:12px">No groups</div>'}
+            </div>
+          </div>`,
+        footer: `
+          <button class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
+          <button class="btn btn-primary" id="btn-save-perms">Save Permissions</button>`,
+      });
+
+      // Helper function to update dropdown header texts
+      function updateHeader(dropdownId, checkboxClass, placeholderText) {
+        const checked = document.querySelectorAll(`#${dropdownId} .${checkboxClass}:checked`);
+        const header = document.getElementById(`header-${dropdownId.split('-')[1]}`);
+        if (!header) return;
+        if (checked.length === 0) {
+          header.textContent = placeholderText;
+        } else if (checked.length === 1) {
+          const labelText = checked[0].parentElement.textContent.trim().replace(/^[^\s]+\s+/, '');
+          header.textContent = labelText;
+        } else {
+          header.textContent = `${checked.length} selected`;
+        }
+      }
+
+      // Initial header update
+      updateHeader('dropdown-devices', 'perm-device', 'Select devices...');
+      updateHeader('dropdown-geofences', 'perm-geo', 'Select zones...');
+
+      // Dropdown toggle logic
+      document.querySelectorAll('.multiselect-header').forEach(header => {
+        header.onclick = (e) => {
+          e.stopPropagation();
+          const dropdown = header.parentElement;
+          const wasOpen = dropdown.classList.contains('open');
+          
+          // Close other dropdowns
+          document.querySelectorAll('.multiselect-dropdown').forEach(d => d.classList.remove('open'));
+          
+          if (!wasOpen) {
+            dropdown.classList.add('open');
+            dropdown.querySelector('.multiselect-search')?.focus();
+          }
+        };
+      });
+
+      // Close dropdowns on outside click
+      const closeDropdowns = () => {
+        document.querySelectorAll('.multiselect-dropdown').forEach(d => d.classList.remove('open'));
+      };
+      document.removeEventListener('click', closeDropdowns);
+      document.addEventListener('click', closeDropdowns);
+      
+      // Prevent closing when clicking inside the dropdown body
+      document.querySelectorAll('.multiselect-body').forEach(body => {
+        body.onclick = (e) => {
+          e.stopPropagation();
+        };
+      });
+
+      // Search functionality
+      const wireSearch = (searchId, listId) => {
+        const searchInput = document.getElementById(searchId);
+        if (!searchInput) return;
+        searchInput.oninput = (e) => {
+          const q = e.target.value.toLowerCase().trim();
+          const items = document.querySelectorAll(`#${listId} .multiselect-item`);
+          items.forEach(item => {
+            const text = item.dataset.text || '';
+            if (text.includes(q)) {
+              item.style.display = 'flex';
+            } else {
+              item.style.display = 'none';
+            }
+          });
+        };
+      };
+
+      wireSearch('search-devices', 'list-devices');
+      wireSearch('search-geofences', 'list-geofences');
+
+      // Update headers on checkbox change
+      document.querySelectorAll('.perm-device').forEach(cb => {
+        cb.onchange = () => updateHeader('dropdown-devices', 'perm-device', 'Select devices...');
+      });
+      document.querySelectorAll('.perm-geo').forEach(cb => {
+        cb.onchange = () => updateHeader('dropdown-geofences', 'perm-geo', 'Select zones...');
+      });
+
+      document.getElementById('btn-save-perms').onclick = () => {
+        document.removeEventListener('click', closeDropdowns);
+        UsersView.savePermissions(userId, userDeviceIds, userGroupIds, userGeofenceIds);
+      };
+
+      // Clean up event listener on Cancel button or Close icon click
+      document.querySelector('#modal-footer button.btn-secondary')?.addEventListener('click', () => {
+        document.removeEventListener('click', closeDropdowns);
+      });
+      document.querySelector('.modal-close')?.addEventListener('click', () => {
+        document.removeEventListener('click', closeDropdowns);
+      });
+
+    } catch (e) {
+      Modal.open({
+        title: `Permissions — ${u?.name || 'User'}`,
+        size: 'lg',
+        body: `
+          <div class="note note-danger">
+            <span class="note-icon">❌</span>
+            Failed to load permissions: ${e.message}
+          </div>`,
+        footer: `<button class="btn btn-secondary" onclick="Modal.close()">Close</button>`
+      });
+    }
+  }
+
+  async function savePermissions(userId, initialDeviceIds, initialGroupIds, initialGeofenceIds) {
+    const currentDeviceIds = new Set();
+    const currentGroupIds = new Set();
+    const currentGeofenceIds = new Set();
+
+    document.querySelectorAll('.perm-device:checked').forEach(el => currentDeviceIds.add(parseInt(el.dataset.id)));
+    document.querySelectorAll('.perm-group:checked').forEach(el => currentGroupIds.add(parseInt(el.dataset.id)));
+    document.querySelectorAll('.perm-geo:checked').forEach(el => currentGeofenceIds.add(parseInt(el.dataset.id)));
+
+    const toLink = [];
+    const toUnlink = [];
+
+    // Compare and diff devices
+    const devices = State.get('devices') || [];
+    devices.forEach(d => {
+      const wasLinked = initialDeviceIds.has(d.id);
+      const isLinked = currentDeviceIds.has(d.id);
+      if (isLinked && !wasLinked) {
+        toLink.push({ userId, deviceId: d.id });
+      } else if (!isLinked && wasLinked) {
+        toUnlink.push({ userId, deviceId: d.id });
+      }
+    });
+
+    // Compare and diff groups
+    const groups = State.get('groups') || [];
+    groups.forEach(g => {
+      const wasLinked = initialGroupIds.has(g.id);
+      const isLinked = currentGroupIds.has(g.id);
+      if (isLinked && !wasLinked) {
+        toLink.push({ userId, groupId: g.id });
+      } else if (!isLinked && wasLinked) {
+        toUnlink.push({ userId, groupId: g.id });
+      }
+    });
+
+    // Compare and diff geofences
+    const geofences = State.get('geofences') || [];
+    geofences.forEach(g => {
+      const wasLinked = initialGeofenceIds.has(g.id);
+      const isLinked = currentGeofenceIds.has(g.id);
+      if (isLinked && !wasLinked) {
+        toLink.push({ userId, geofenceId: g.id });
+      } else if (!isLinked && wasLinked) {
+        toUnlink.push({ userId, geofenceId: g.id });
+      }
+    });
+
+    const btn = document.getElementById('btn-save-perms');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+    }
+
+    try {
+      if (toLink.length > 0) {
+        await Promise.all(toLink.map(p => API.linkPermission(p)));
+      }
+      if (toUnlink.length > 0) {
+        await Promise.all(toUnlink.map(p => API.unlinkPermission(p)));
+      }
       Modal.close();
-      Toast.success(`Permissions updated`);
-    } catch (e) { Toast.error(e.message); }
+      Toast.success('Permissions updated');
+    } catch (e) {
+      Toast.error(e.message);
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Save Permissions';
+      }
+    }
   }
 
   function confirmDelete(id) {

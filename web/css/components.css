@@ -133,7 +133,7 @@ table.data-table { width:100%; border-collapse:collapse; }
   box-shadow:var(--shadow);
 }
 .modal-overlay.open .modal-box { transform:translateY(0) scale(1); }
-.modal-box.modal-lg { width:720px; }
+.modal-box.modal-lg { width:840px; }
 .modal-box.modal-sm { width:380px; }
 .modal-header {
   display:flex; align-items:center; justify-content:space-between;
@@ -312,3 +312,98 @@ table.data-table { width:100%; border-collapse:collapse; }
   border-color:var(--border-m) !important;
 }
 .leaflet-control-zoom a:hover { color:var(--primary) !important; background:var(--bg3) !important; }
+
+/* ── MULTI-SELECT DROPDOWN ──────────────── */
+.multiselect-dropdown {
+  position: relative;
+  width: 100%;
+}
+.multiselect-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  min-height: 38px;
+  user-select: none;
+  transition: border-color var(--transition);
+}
+.multiselect-header:hover {
+  border-color: var(--border-m);
+}
+.multiselect-header::after {
+  content: '▼';
+  font-size: 9px;
+  color: var(--muted);
+  transition: transform var(--transition);
+}
+.multiselect-dropdown.open .multiselect-header::after {
+  transform: rotate(180deg);
+}
+.multiselect-body {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 8500;
+  background: var(--bg2);
+  border: 1px solid var(--border-m);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 8px;
+  max-height: 320px;
+  flex-direction: column;
+  gap: 8px;
+}
+.multiselect-dropdown.open .multiselect-body {
+  display: flex;
+}
+.multiselect-search-wrap {
+  position: relative;
+}
+.multiselect-search {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg3);
+  color: var(--text);
+}
+.multiselect-search:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+.multiselect-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px;
+}
+.multiselect-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13.5px;
+  color: var(--text);
+  transition: background var(--transition);
+  user-select: none;
+}
+.multiselect-item:hover {
+  background: var(--bg-hover);
+}
+.multiselect-item input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
