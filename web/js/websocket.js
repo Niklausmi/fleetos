@@ -7,7 +7,7 @@ const WS = (() => {
   let _retryCount = 0;
 
   function connect() {
-    const base = API.getBase(); // e.g. http://localhost:8082/api
+    const base = API.getBase();
     if (!base) return;
     const wsUrl = base.replace(/^http/, 'ws') + '/socket';
     _ws = new WebSocket(wsUrl);
@@ -20,13 +20,13 @@ const WS = (() => {
     _ws.onmessage = (e) => {
       let data;
       try { data = JSON.parse(e.data); } catch { return; }
-
       if (data.devices)   State.mergeDevices(data.devices);
       if (data.positions) State.mergePositions(data.positions);
       if (data.events)    State.prependEvents(data.events);
     };
 
-    _ws.onerror = () => {};
+    // FIX: log errors instead of silently swallowing
+    _ws.onerror = (e) => { console.warn('[WS] error', e); };
 
     _ws.onclose = () => {
       console.log('[WS] disconnected, retrying…');

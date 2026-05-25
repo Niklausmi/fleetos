@@ -407,3 +407,93 @@ table.data-table { width:100%; border-collapse:collapse; }
   margin: 0;
   cursor: pointer;
 }
+
+/* ── MULTISELECT DROPDOWN (permissions modal) ── */
+.multiselect-dropdown {
+  position: relative;
+  width: 100%;
+}
+.multiselect-header {
+  padding: 9px 12px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color var(--transition);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.multiselect-header:hover { border-color: var(--border-m); }
+.multiselect-dropdown.open .multiselect-header {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-l);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.multiselect-body {
+  display: none;
+  position: absolute;
+  top: 100%; left: 0; right: 0;
+  background: var(--bg2);
+  border: 1px solid var(--primary);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  box-shadow: var(--shadow);
+  z-index: 500;
+  max-height: 220px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.multiselect-dropdown:not(.open) .multiselect-body { display: none !important; }
+.multiselect-dropdown.open .multiselect-body { display: flex; }
+.multiselect-search-wrap { padding: 7px 8px; border-bottom: 1px solid var(--border-s); flex-shrink: 0; }
+.multiselect-search {
+  width: 100%; padding: 6px 10px; font-size: 12px;
+  background: var(--bg3); border: 1px solid var(--border-s);
+  border-radius: 5px; color: var(--text);
+}
+.multiselect-list { overflow-y: auto; flex: 1; }
+.multiselect-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; cursor: pointer; font-size: 13px; color: var(--text);
+  transition: background var(--transition);
+}
+.multiselect-item:hover { background: var(--bg-hover); }
+.multiselect-item input[type="checkbox"] { width: auto; flex-shrink: 0; accent-color: var(--primary); }
+
+/* ── DRIVERS LIST ─────────────────────── */
+.drivers-list { display: flex; flex-direction: column; gap: 2px; }
+.driver-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 16px; cursor: pointer;
+  border-bottom: 1px solid var(--border-s);
+  transition: background var(--transition);
+}
+.driver-row:hover { background: var(--bg-hover); }
+.driver-avatar {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: #fff;
+}
+.driver-info { flex: 1; min-width: 0; }
+.driver-name { font-size: 13.5px; font-weight: 500; color: var(--text); }
+.driver-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.driver-score-wrap { text-align: right; flex-shrink: 0; }
+.driver-score { font-size: 22px; font-weight: 700; line-height: 1; }
+.driver-score-lbl { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px; }
+.score-bar { width: 60px; height: 4px; background: var(--muted3, var(--glass-h)); border-radius: 3px; overflow: hidden; margin-top: 5px; }
+.score-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+
+/* ── SETTINGS SECTION HEADER (was settings-section-title) ── */
+.settings-section-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-s);
+  font-family: var(--font-display);
+  font-size: 13.5px; font-weight: 600;
+  display: flex; align-items: center; gap: 9px;
+  color: var(--text);
+}

@@ -5,58 +5,57 @@ const MapUtil = (() => {
   const TILE_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
   const TILE_SAT  = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
   const TILE_LITE = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-  const TILE_OSM = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const TILE_OSM  = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
+  // FIX: respect current theme when initialising
   function createMap(elId, opts = {}) {
     const m = L.map(elId, { zoomControl: false, attributionControl: false, ...opts });
-    L.tileLayer(TILE_DARK, { maxZoom: 19 }).addTo(m);
+    const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+    L.tileLayer(theme === 'light' ? TILE_LITE : TILE_DARK, { maxZoom: 19 }).addTo(m);
     return m;
   }
 
- 
-
-// Update your setStyle mapping
-function setStyle(map, style) {
-  const tiles = { 
-    dark: TILE_DARK, 
-    satellite: TILE_SAT, 
-    streets: TILE_OSM, // Use OSM for "streets" instead of Lite
-    lite: TILE_LITE 
-  };
-  
-  map.eachLayer(l => { if (l instanceof L.TileLayer) map.removeLayer(l); });
-  
-  L.tileLayer(tiles[style] || TILE_OSM, { 
-    maxZoom: 19,
-    attribution: '© OpenStreetMap'
-  }).addTo(map);
-}
-
-  function deviceIcon(status, category = 'car', heading = 0) {
-    const emoji = { truck: '🚛', bus: '🚌', motorcycle: '🏍️', bicycle: '🚲', boat: '⛵', plane: '✈️', car: '🚗' }[category] || '🚗';
-    const color = status === 'online' ? 'var(--online)' : status === 'idle' ? 'var(--idle)' : 'var(--offline)';
-    return L.divIcon({
-      className: '',
-      html: `<div style="
-        width:34px;height:34px;border-radius:50%;
-        background:${color}22;border:2px solid ${color};
-        display:flex;align-items:center;justify-content:center;
-        font-size:14px;box-shadow:0 0 10px ${color}55;
-        transform:rotate(${heading}deg);
-      ">${emoji}</div>`,
-      iconSize: [34, 34], iconAnchor: [17, 17],
-    });
+  function setStyle(map, style) {
+    const tiles = {
+      dark:      TILE_DARK,
+      satellite: TILE_SAT,
+      streets:   TILE_OSM,
+      lite:      TILE_LITE,
+    };
+    map.eachLayer(l => { if (l instanceof L.TileLayer) map.removeLayer(l); });
+    L.tileLayer(tiles[style] || TILE_OSM, { maxZoom: 19 }).addTo(map);
   }
 
-  function pinIcon(color = '#00E5C3', emoji = '📍') {
+  function deviceIcon(status, category = 'car', heading = 0) {
+    const icons = {
+      truck: '🚛', bus: '🚌', motorcycle: '🏍️',
+      bicycle: '🚲', boat: '⛵', plane: '✈️', car: '🚗',
+    };
+    const emoji = icons[category] || '🚗';
+    const color = status === 'online' ? 'var(--online)' : status === 'idle' ? 'var(--idle)' : 'var(--offline)';
+    // FIX: only rotate arrow category — emojis have no forward direction
+    const rotate = category === 'arrow' ? `transform:rotate(${heading}deg)` : '';
     return L.divIcon({
       className: '',
       html: `<div style="
         width:32px;height:32px;border-radius:50%;
         background:${color}22;border:2px solid ${color};
-        display:flex;align-items:center;justify-content:center;font-size:14px;
+        display:flex;align-items:center;justify-content:center;
+        font-size:15px;box-shadow:0 0 8px ${color}44;${rotate}
       ">${emoji}</div>`,
       iconSize: [32, 32], iconAnchor: [16, 16],
+    });
+  }
+
+  function pinIcon(color = '#6366f1', emoji = '📍') {
+    return L.divIcon({
+      className: '',
+      html: `<div style="
+        width:30px;height:30px;border-radius:50%;
+        background:${color}22;border:2px solid ${color};
+        display:flex;align-items:center;justify-content:center;font-size:14px;
+      ">${emoji}</div>`,
+      iconSize: [30, 30], iconAnchor: [15, 15],
     });
   }
 
@@ -85,7 +84,7 @@ const LiveMap = (() => {
 
   function init(elId) {
     _map = MapUtil.createMap(elId);
-    _map.setView([25, 55], 5);
+    _map.setView([30, 70], 5);
     return _map;
   }
 
@@ -96,7 +95,7 @@ const LiveMap = (() => {
       const p = positions[d.id];
       if (!p?.latitude) return;
       const latlng = [p.latitude, p.longitude];
-      const icon = MapUtil.deviceIcon(d.status, d.category, p.course);
+      const icon   = MapUtil.deviceIcon(d.status, d.category, p.course);
       if (_markers[d.id]) {
         _markers[d.id].setLatLng(latlng).setIcon(icon);
       } else {
@@ -112,7 +111,9 @@ const LiveMap = (() => {
       if (_trails[d.id].length > TRAIL_LEN) _trails[d.id].shift();
       if (_trails[d.id + '_line']) _map.removeLayer(_trails[d.id + '_line']);
       if (_trails[d.id].length > 1) {
-        _trails[d.id + '_line'] = L.polyline(_trails[d.id], { color: Fmt.statusColor(d.status), weight: 2, opacity: 0.5 }).addTo(_map);
+        _trails[d.id + '_line'] = L.polyline(_trails[d.id], {
+          color: Fmt.statusColor(d.status), weight: 2, opacity: 0.5,
+        }).addTo(_map);
       }
     });
 
@@ -131,10 +132,8 @@ const LiveMap = (() => {
   }
 
   function fitAll(positions) { MapUtil.fitMarkers(_map, positions); }
-
-  function setStyle(style) { MapUtil.setStyle(_map, style); }
-
-  function invalidate() { _map?.invalidateSize(); }
+  function setStyle(style)   { MapUtil.setStyle(_map, style); }
+  function invalidate()      { _map?.invalidateSize(); }
 
   return { init, getMap, update, focusDevice, fitAll, setStyle, invalidate };
 })();

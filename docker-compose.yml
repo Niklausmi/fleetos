@@ -1,31 +1,45 @@
 version: '3.9'
 
 # ============================================================
-# FleetOS — Full Stack Docker Compose
-# Usage: docker compose up -d
+# FleetOS — Conflict-Free Docker Compose
+#
+# Your server's taken ports (from ss -tlnp):
+#   5432  → existing Postgres     ✓ handled — no ports block
+#   80    → existing nginx/proxy  ✓ handled — nginx uses 3000 internally
+#   8000  → existing service      ✓ no conflict
+#   6379  → Redis                 ✓ no conflict
+#   5001  → telematics            ✓ no conflict
+#   5002  → telematics            ✓ no conflict
+#   8080  → telematics            ✓ no conflict
+#   8081  → telematics            ✓ no conflict
+#
+# FleetOS uses: 3000, 8082, 5050, 5023, 5027, 5004, 5020, 5036, 5055
+# All confirmed free on your server.
 # ============================================================
 
 services:
 
   # ── PostgreSQL ──────────────────────────────────────────
+  # NO ports: block — completely isolated on fleetos-net
+  # Zero conflict with existing Postgres on host:5432
   postgres:
     image: postgres:16-alpine
     container_name: fleetos-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: traccar
+      POSTGRES_USER:     traccar
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-PXJbIJ59qcPDvuXHOX3u}
-      POSTGRES_DB: traccar
+      POSTGRES_DB:       traccar
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U traccar"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - fleetos-net
 
   # ── Traccar Backend ─────────────────────────────────────
   traccar:
@@ -36,48 +50,63 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      # Web API
+      # Traccar REST API + WebSocket
       - "8082:8082"
-      # GPS device ports (add more as needed)
-      - "5023:5023"    # GT06 / Concox
-      - "5027:5027"    # Teltonika
-      - "5004:5004"    # Queclink GL200
-      - "5036:5036"    # Sinotrack
-      - "5055:5055"    # OsmAnd / Traccar Client
-      - "5020:5020"    # Meitrack
-      - "10000:10000"  # Generic NMEA
+      # ── GPS device ports (all confirmed free) ──────────
+      - "5027:5027"     # Teltonika FMB series
+      - "5023:5023"     # GT06 / Concox / Coban
+      - "5004:5004"     # Queclink GV-series
+      - "5036:5036"     # Sinotrack ST-901
+      - "5020:5020"     # Meitrack
+      - "5055:5055"     # OsmAnd / Traccar Client app
+      - "10000:10000"   # Generic NMEA over TCP
     volumes:
       - ./config/traccar.xml:/opt/traccar/conf/traccar.xml:ro
       - traccar_logs:/opt/traccar/logs
       - traccar_data:/opt/traccar/data
     environment:
-      - TZ=UTC
+      - TZ=${TZ:-Asia/Karachi}
+    networks:
+      - fleetos-net
 
   # ── FleetOS Web UI ──────────────────────────────────────
+  # Nginx listens on port 3000 INSIDE the container (not 80)
+  # So no conflict with the existing service on host:80
   fleetos-web:
     image: nginx:alpine
     container_name: fleetos-web
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - "3000:3000"
     volumes:
       - ./web:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - traccar
+    networks:
+      - fleetos-net
 
-  # ── pgAdmin (database management) ──────────────────────
+  # ── pgAdmin ─────────────────────────────────────────────
+  # Internal port 8888 to avoid conflict with host:80
+  # pgAdmin connects to fleetos-postgres via Docker DNS
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: fleetos-pgadmin
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@fleetos.io
+      PGADMIN_DEFAULT_EMAIL:    ${PGADMIN_EMAIL:-admin@fleetos.io}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_LISTEN_PORT:      8888
     ports:
-      - "5050:80"
+      - "5050:8888"
     depends_on:
       - postgres
+    networks:
+      - fleetos-net
+
+networks:
+  fleetos-net:
+    driver: bridge
 
 volumes:
   postgres_data:

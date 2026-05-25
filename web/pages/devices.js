@@ -128,7 +128,7 @@ const DevicesView = (() => {
       uniqueId: document.getElementById('df-uid').value.trim(),
       phone:    document.getElementById('df-phone').value.trim(),
       category: document.getElementById('df-category').value,
-      groupId:  parseInt(document.getElementById('df-group').value) || 0,
+      groupId:  parseInt(document.getElementById('df-group').value) || undefined,
       contact:  document.getElementById('df-contact').value.trim(),
       model:    document.getElementById('df-model').value.trim(),
     };

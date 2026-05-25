@@ -4,7 +4,6 @@
 const App = (() => {
 
   async function init() {
-    // Load base data in parallel
     try {
       const [devices, positions, geofences, groups] = await Promise.allSettled([
         API.getDevices(),
@@ -12,15 +11,16 @@ const App = (() => {
         API.getGeofences(),
         API.getGroups(),
       ]);
-      if (devices.status === 'fulfilled')    State.set('devices', devices.value);
-      if (positions.status === 'fulfilled')  State.mergePositions(positions.value);
-      if (geofences.status === 'fulfilled')  State.set('geofences', geofences.value);
-      if (groups.status === 'fulfilled')     State.set('groups', groups.value);
+      if (devices.status   === 'fulfilled') State.set('devices',   devices.value);
+      if (positions.status === 'fulfilled') State.mergePositions(positions.value);
+      if (geofences.status === 'fulfilled') State.set('geofences', geofences.value);
+      if (groups.status    === 'fulfilled') State.set('groups',    groups.value);
     } catch {}
 
-    // Load recent events (last 24h)
+    // FIX: use reliable 24h window instead of midnight-local to avoid TZ drift
     try {
-      const { from, to } = rangeForPeriod('today');
+      const to   = new Date().toISOString();
+      const from = new Date(Date.now() - 86400000).toISOString();
       const evts = await API.getEvents(from, to);
       State.set('events', evts);
     } catch {}
@@ -28,18 +28,15 @@ const App = (() => {
     // Connect WebSocket
     WS.connect();
 
-    // Register event-badge updater
+    // Event badge updater
     State.on('newEventCount', count => {
       const badge = document.getElementById('events-badge');
       if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline-flex' : 'none'; }
     });
 
-    // Periodic position refresh fallback
+    // Periodic position refresh fallback (every 15s)
     setInterval(async () => {
-      try {
-        const pos = await API.getPositions();
-        State.mergePositions(pos);
-      } catch {}
+      try { State.mergePositions(await API.getPositions()); } catch {}
     }, 15000);
 
     // Register all views
@@ -61,7 +58,6 @@ const App = (() => {
   return { init };
 })();
 
-/* ── AUTO-LOGIN ON LOAD ───────────────── */
 window.addEventListener('DOMContentLoaded', async () => {
   const ok = await Auth.tryAutoLogin();
   if (!ok) {

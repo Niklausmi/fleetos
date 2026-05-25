@@ -5,6 +5,19 @@ const Views = (() => {
   const _registry = {};
   let _current = null;
 
+  const _meta = {
+    dashboard:     { title: 'Live Map',  breadcrumb: 'Overview' },
+    events:        { title: 'Events',    breadcrumb: 'Monitor' },
+    notifications: { title: 'Alerts',   breadcrumb: 'Monitor' },
+    playback:      { title: 'Playback',  breadcrumb: 'Analyze' },
+    reports:       { title: 'Reports',   breadcrumb: 'Analyze' },
+    devices:       { title: 'Devices',   breadcrumb: 'Manage' },
+    geofences:     { title: 'Zones',     breadcrumb: 'Manage' },
+    drivers:       { title: 'Drivers',   breadcrumb: 'Manage' },
+    users:         { title: 'Users',     breadcrumb: 'Manage' },
+    settings:      { title: 'Settings',  breadcrumb: 'Configuration' },
+  };
+
   function register(name, { init, onShow, onHide }) {
     _registry[name] = { init, onShow, onHide, initialized: false };
   }
@@ -33,6 +46,10 @@ const Views = (() => {
     _registry[name].onShow?.();
     _current = name;
 
+    // FIX: Update topbar title + breadcrumb
+    const m = _meta[name] || { title: name, breadcrumb: name };
+    if (window.UI) UI.setPage(m.title, m.breadcrumb);
+
     // Clear event badge when viewing events
     if (name === 'events') State.clearEventBadge();
   }
@@ -40,7 +57,8 @@ const Views = (() => {
   function reinit(name) {
     if (_registry[name]) {
       _registry[name].initialized = false;
-      document.getElementById('view-' + name).innerHTML = '';
+      const el = document.getElementById('view-' + name);
+      if (el) el.innerHTML = '';
     }
   }
 

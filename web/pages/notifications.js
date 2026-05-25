@@ -268,6 +268,16 @@ const NotificationsView = (() => {
     // Attributes — only include non-empty values
     const attrs = {};
     if (emailAddr) attrs.mail = emailAddr;
+    // Inject FCM token when firebase channel is enabled
+    const firebaseCb = document.getElementById('nf-firebase');
+    if (firebaseCb && firebaseCb.checked) {
+      const token = window.FCM ? FCM.getStoredToken() : localStorage.getItem('fcm_token');
+      if (token) {
+        attrs.firebaseToken = token;
+      } else {
+        Toast.warn('No FCM token — enable push in Settings first');
+      }
+    }
     if (Object.keys(attrs).length) data.attributes = attrs;
 
     try {

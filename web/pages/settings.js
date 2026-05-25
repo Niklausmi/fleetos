@@ -24,7 +24,7 @@ const SettingsView = (() => {
         <div class="settings-grid">
           <!-- Connection -->
           <div class="settings-section">
-            <div class="settings-section-title">🔌 Connection</div>
+            <div class="settings-section-header">🔌 Connection</div>
             <div class="setting-row">
               <div><div class="setting-label">Server URL</div><div class="setting-desc">Active Traccar endpoint</div></div>
               <div style="font-family:var(--font-mono);font-size:11px;color:var(--accent);max-width:160px;overflow:hidden;text-overflow:ellipsis">${API.getBase()}</div>
@@ -41,7 +41,7 @@ const SettingsView = (() => {
 
           <!-- Map -->
           <div class="settings-section">
-            <div class="settings-section-title">🗺️ Map</div>
+            <div class="settings-section-header">🗺️ Map</div>
             <div class="setting-row">
               <div><div class="setting-label">Map Style</div></div>
               <select id="map-style-sel" style="width:130px" onchange="LiveMap.setStyle(this.value)">
@@ -66,7 +66,7 @@ const SettingsView = (() => {
 
           <!-- Account -->
           <div class="settings-section">
-            <div class="settings-section-title">👤 Account</div>
+            <div class="settings-section-header">👤 Account</div>
             <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
               <div class="user-avatar" style="width:52px;height:52px;font-size:20px;background:${Fmt.avatarColor(session.name || 'A')}">${Fmt.initial(session.name || 'A')}</div>
               <div>
@@ -80,7 +80,7 @@ const SettingsView = (() => {
 
           <!-- Notifications prefs -->
           <div class="settings-section">
-            <div class="settings-section-title">🔔 Alert Preferences</div>
+            <div class="settings-section-header">🔔 Alert Preferences</div>
             <div class="setting-row">
               <div><div class="setting-label">Overspeed Alerts</div></div>
               <div class="toggle on" onclick="this.classList.toggle('on')"></div>
@@ -99,10 +99,37 @@ const SettingsView = (() => {
             </div>
           </div>
 
+          <!-- Firebase Push -->
+          <div class="settings-section">
+            <div class="settings-section-header">🔥 Push Notifications</div>
+            <div class="note" style="margin:14px 16px 4px" id="fcm-status-note">
+              <span class="note-icon">ℹ️</span>
+              <div id="fcm-status-text">Enable push to receive alerts even when FleetOS is in the background.</div>
+            </div>
+            <div class="setting-row" style="padding:12px 16px">
+              <div>
+                <div class="setting-label">FCM Device Token</div>
+                <div class="setting-desc" id="fcm-token-display" style="font-family:var(--font-mono);font-size:10px;word-break:break-all;max-width:220px">
+                  ${localStorage.getItem('fcm_token') ? localStorage.getItem('fcm_token').slice(0,28)+'…' : 'Not registered'}
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="SettingsView.registerPush()">
+                ${localStorage.getItem('fcm_token') ? 'Re-register' : 'Enable Push'}
+              </button>
+            </div>
+            <div class="setting-row" style="padding:4px 16px 14px">
+              <div>
+                <div class="setting-label">Test Push</div>
+                <div class="setting-desc">Send a browser notification to verify setup</div>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="SettingsView.testPush()">Send Test</button>
+            </div>
+          </div>
+
           <!-- Server config (admin only) -->
           ${session.administrator ? `
           <div class="settings-section" style="grid-column:1/-1">
-            <div class="settings-section-title">🖥️ Server Configuration</div>
+            <div class="settings-section-header">🖥️ Server Configuration</div>
             <div id="server-config-body">
               <div class="empty-state" style="padding:20px"><div class="empty-icon" style="font-size:24px">⏳</div></div>
             </div>
@@ -190,5 +217,50 @@ const SettingsView = (() => {
     } catch (e) { Toast.error(e.message); }
   }
 
-  return { register, saveServer, openChangePassword, savePassword };
+  async function registerPush() {
+    const btn = document.querySelector('[onclick="SettingsView.registerPush()"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Registering…'; }
+    try {
+      if (!window.FCM) throw new Error('Firebase not loaded');
+      const token = await FCM.init();
+      if (!token) throw new Error('Permission denied or browser not supported');
+      const display = document.getElementById('fcm-token-display');
+      if (display) display.textContent = token.slice(0, 28) + '…';
+      const note = document.getElementById('fcm-status-note');
+      if (note) {
+        note.className = 'note note-success';
+        document.getElementById('fcm-status-text').textContent = '✓ Push notifications enabled on this device.';
+      }
+      Toast.success('Push notifications enabled');
+      if (btn) { btn.textContent = 'Re-register'; btn.disabled = false; }
+    } catch (e) {
+      Toast.error('Push setup failed: ' + e.message);
+      const note = document.getElementById('fcm-status-note');
+      if (note) {
+        note.className = 'note note-danger';
+        document.getElementById('fcm-status-text').textContent = 'Failed: ' + e.message;
+      }
+      if (btn) { btn.textContent = 'Retry'; btn.disabled = false; }
+    }
+  }
+
+  function testPush() {
+    if (!('Notification' in window)) {
+      Toast.error('Notifications not supported in this browser');
+      return;
+    }
+    if (Notification.permission !== 'granted') {
+      Toast.warn('Notification permission not granted — click Enable Push first');
+      return;
+    }
+    new Notification('FleetOS Test Alert', {
+      body:  'Push notifications are working correctly ✓',
+      icon:  '/icon.png',
+      badge: '/icon.png',
+      tag:   'fleetos-test',
+    });
+    Toast.success('Test notification sent');
+  }
+
+  return { register, saveServer, openChangePassword, savePassword, registerPush, testPush };
 })();

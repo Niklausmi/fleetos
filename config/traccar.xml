@@ -1,46 +1,42 @@
 <?xml version='1.0' encoding='UTF-8'?>
-
 <!DOCTYPE properties SYSTEM 'http://java.sun.com/dtd/properties.dtd'>
 
 <!--
   FleetOS — Traccar Server Configuration
-  Place this file at: /opt/traccar/conf/traccar.xml
   
-  This config:
-  - Uses PostgreSQL as the database backend
-  - Enables WebSocket for real-time updates
-  - Configures CORS for the FleetOS frontend
-  - Enables all common GPS protocols
+  DATABASE NOTE: Traccar connects to Postgres via Docker internal network
+  using container name "fleetos-postgres" on internal port 5432.
+  The host-side port 5433 is irrelevant here — Docker DNS handles routing.
 -->
 
 <properties>
 
   <!-- ═══════════════════════════════════════
        DATABASE — PostgreSQL
+       Container name = Docker DNS hostname
   ════════════════════════════════════════ -->
-<entry key='database.driver'>org.postgresql.Driver</entry>
-<entry key='database.url'>jdbc:postgresql://fleetos-postgres-old:5432/traccar</entry>
-<entry key='database.user'>traccar</entry>
-<entry key='database.password'>PXJbIJ59qcPDvuXHOX3u</entry>
-
-  <!-- Connection pool -->
+  <entry key='database.driver'>org.postgresql.Driver</entry>
+  <entry key='database.url'>jdbc:postgresql://fleetos-postgres:5432/traccar</entry>
+  <entry key='database.user'>traccar</entry>
+  <entry key='database.password'>PXJbIJ59qcPDvuXHOX3u</entry>
   <entry key='database.pool.size'>16</entry>
 
   <!-- ═══════════════════════════════════════
        WEB SERVER
   ════════════════════════════════════════ -->
-  <!-- REST API + Web UI port -->
   <entry key='web.enable'>true</entry>
   <entry key='web.port'>8082</entry>
   <entry key='web.path'>/opt/traccar/web</entry>
 
-  <!-- CORS — allow FleetOS frontend -->
+  <!-- CORS — allow FleetOS frontend on port 3000
+       Change to your actual domain in production:
+       https://fleetos.yourdomain.com
+  -->
   <entry key='web.origin'>*</entry>
 
   <!-- ═══════════════════════════════════════
        GEOCODING (reverse geocode addresses)
   ════════════════════════════════════════ -->
-  <!-- Using Nominatim (free, no key needed) -->
   <entry key='geocoder.enable'>true</entry>
   <entry key='geocoder.type'>nominatim</entry>
   <entry key='geocoder.url'>https://nominatim.openstreetmap.org/reverse</entry>
@@ -48,38 +44,38 @@
   <entry key='geocoder.rateLimit'>1</entry>
 
   <!-- ═══════════════════════════════════════
-       NOTIFICATIONS
+       EMAIL NOTIFICATIONS
+       Use Gmail App Password (not your login password)
+       Gmail: Account → Security → 2FA → App Passwords
   ════════════════════════════════════════ -->
-  <!-- Email -->
   <entry key='mail.smtp.host'>smtp.gmail.com</entry>
   <entry key='mail.smtp.port'>587</entry>
   <entry key='mail.smtp.starttls.enable'>true</entry>
-  <entry key='mail.smtp.from'>your-fleet@gmail.com</entry>
   <entry key='mail.smtp.auth'>true</entry>
+  <entry key='mail.smtp.from'>your-fleet@gmail.com</entry>
   <entry key='mail.smtp.username'>your-fleet@gmail.com</entry>
-  <entry key='mail.smtp.password'>YOUR_APP_PASSWORD</entry>
+  <entry key='mail.smtp.password'>YOUR_GMAIL_APP_PASSWORD</entry>
 
   <!-- ═══════════════════════════════════════
        GPS DEVICE PORTS
-       Common protocols — add more as needed
   ════════════════════════════════════════ -->
 
-  <!-- GT06 / Concox (very common) -->
-  <entry key='gt06.port'>5023</entry>
-
-  <!-- Teltonika (FMB series, etc.) -->
+  <!-- Teltonika FMB series (FMB920, FMB140, FMB003, FMB125, etc.) -->
   <entry key='teltonika.port'>5027</entry>
 
-  <!-- Queclink (GV-series) -->
+  <!-- GT06 / Concox / Coban TK-series -->
+  <entry key='gt06.port'>5023</entry>
+
+  <!-- Queclink GV-series -->
   <entry key='gl200.port'>5004</entry>
 
-  <!-- Sinotrack / ST-901 -->
+  <!-- Sinotrack ST-901 / ST-906 -->
   <entry key='sinotrack.port'>5036</entry>
 
   <!-- Meitrack -->
   <entry key='meitrack.port'>5020</entry>
 
-  <!-- JT701 / JT600 -->
+  <!-- JT600 / JT701 -->
   <entry key='jt600.port'>5038</entry>
 
   <!-- Coban / TK103 -->
@@ -91,26 +87,24 @@
   <!-- Generic NMEA over TCP -->
   <entry key='nmea.port'>10000</entry>
 
-  <!-- OsmAnd (mobile tracking app) -->
-  <entry key='osmand.port'>5055</entry>
-
-  <!-- Traccar Client (official mobile app) -->
+  <!-- OsmAnd mobile app / Traccar Client (official app) -->
   <entry key='osmand.port'>5055</entry>
 
   <!-- ═══════════════════════════════════════
-       FILTERING & PROCESSING
+       POSITION FILTERING
   ════════════════════════════════════════ -->
-  <!-- Filter invalid/duplicate positions -->
   <entry key='filter.enable'>true</entry>
   <entry key='filter.invalid'>true</entry>
   <entry key='filter.zero'>true</entry>
   <entry key='filter.duplicate'>true</entry>
   <entry key='filter.future'>true</entry>
-  <entry key='filter.accuracy'>50</entry>          <!-- max accuracy meters -->
-  <entry key='filter.distance'>5</entry>            <!-- min distance meters -->
-  <entry key='filter.maxSpeed'>600</entry>          <!-- max realistic speed km/h -->
+  <entry key='filter.accuracy'>50</entry>
+  <entry key='filter.distance'>5</entry>
+  <entry key='filter.maxSpeed'>600</entry>
 
-  <!-- Speed in km/h in reports -->
+  <!-- ═══════════════════════════════════════
+       TRIP REPORTING THRESHOLDS
+  ════════════════════════════════════════ -->
   <entry key='report.trip.minimalTripDistance'>500</entry>
   <entry key='report.trip.minimalTripDuration'>300</entry>
   <entry key='report.trip.minimalParkingDuration'>300</entry>
