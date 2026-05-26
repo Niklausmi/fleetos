@@ -52,7 +52,26 @@ const PlaybackView = (() => {
   function populateDevices() {
     const sel = document.getElementById('pb-device');
     if (!sel) return;
-    sel.innerHTML = State.get('devices').map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    sel.innerHTML = State.get('devices').map(d =>
+      `<option value="${d.id}">${d.name}</option>`
+    ).join('');
+
+    // Pre-select device from dashboard navigation
+    const pre = State.get('selectedDevice');
+    if (pre) sel.value = pre;
+
+    // Pre-set date range if coming from history menu
+    const fromISO = State.get('playbackFrom');
+    const toISO   = State.get('playbackTo');
+    if (fromISO) {
+      const fromEl = document.getElementById('pb-from');
+      if (fromEl) fromEl.value = fromISO.slice(0, 10);
+      // Clear after use
+      State.set('playbackFrom', null);
+      State.set('playbackTo',   null);
+      // Auto-load immediately
+      setTimeout(() => load(), 200);
+    }
   }
 
   async function load() {
@@ -74,10 +93,16 @@ const PlaybackView = (() => {
   function drawTrack() {
     _map.eachLayer(l => { if (!(l instanceof L.TileLayer)) _map.removeLayer(l); });
     const pts = _positions.map(p => [p.latitude, p.longitude]);
-    _polyline = L.polyline(pts, { color: 'var(--accent)', weight: 3, opacity: 0.6 }).addTo(_map);
+
+    // FIX 7: real hex colors — Leaflet cannot resolve CSS variables
+    _polyline = L.polyline(pts, {
+      color: '#6366f1', weight: 4, opacity: 0.85,
+      lineJoin: 'round', lineCap: 'round',
+    }).addTo(_map);
+
     if (pts.length > 1) {
-      L.marker(pts[0], { icon: MapUtil.pinIcon('var(--accent)', '🚦') }).addTo(_map);
-      L.marker(pts[pts.length-1], { icon: MapUtil.pinIcon('var(--accent3)', '🏁') }).addTo(_map);
+      L.marker(pts[0], { icon: MapUtil.pinIcon('#10b981', 'Start') }).addTo(_map);
+      L.marker(pts[pts.length-1], { icon: MapUtil.pinIcon('#ef4444', 'End') }).addTo(_map);
     }
     _map.fitBounds(pts, { padding: [50, 50] });
     updateMarker();
@@ -87,7 +112,7 @@ const PlaybackView = (() => {
     const p = _positions[_idx];
     if (!p) return;
     if (_marker) _map.removeLayer(_marker);
-    _marker = L.marker([p.latitude, p.longitude], { icon: MapUtil.pinIcon('var(--accent2)', '🚗') }).addTo(_map);
+    _marker = L.marker([p.latitude, p.longitude], { icon: MapUtil.pinIcon('#f59e0b', '▶') }).addTo(_map);
     const pct = _positions.length > 1 ? (_idx / (_positions.length - 1)) * 100 : 0;
     const fill = document.getElementById('pb-fill');
     if (fill) fill.style.width = pct + '%';
