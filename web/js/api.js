@@ -11,7 +11,11 @@ const API = (() => {
   }
 
   async function req(method, path, body = null, form = false) {
-    const headers = { Authorization: _auth, Accept: 'application/json' };
+    const headers = {
+      Authorization: _auth,
+      Accept: 'application/json',
+      'Accept-Encoding': 'gzip, deflate, br',
+    };
     let bodyStr = null;
     if (body) {
       if (form) {

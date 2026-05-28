@@ -265,17 +265,41 @@ const PlaybackView = (() => {
     clearMapLayers();
     stop();
 
+    // ── Phase 1: fetch trips + stops first (small, fast)
+    // Show the trip list immediately while route loads in background
     try {
-      const [routeRes, tripsRes, stopsRes] = await Promise.allSettled([
-        API.getReportRoute(_deviceId, _fromISO, _toISO),
-        API.getReportTrips([parseInt(_deviceId)], [], _fromISO, _toISO),
-        API.getReportStops([parseInt(_deviceId)], [], _fromISO, _toISO),
+      const [tripsRes, stopsRes] = await Promise.all([
+        API.getReportTrips([parseInt(_deviceId)], [], _fromISO, _toISO)
+            .catch(() => []),
+        API.getReportStops([parseInt(_deviceId)], [], _fromISO, _toISO)
+            .catch(() => []),
       ]);
-      _positions = routeRes.status === 'fulfilled' ? (routeRes.value || []) : [];
-      _trips     = tripsRes.status === 'fulfilled' ? (tripsRes.value || []) : [];
-      _stops     = stopsRes.status === 'fulfilled' ? (stopsRes.value || []) : [];
+      _trips = tripsRes || [];
+      _stops = stopsRes || [];
     } catch (e) {
-      Toast.error('Load failed: ' + e.message);
+      _trips = []; _stops = [];
+    }
+
+    // Show summary + trip list immediately
+    updateStats();
+    renderTripList();
+
+    // Show route loading indicator in trip list header
+    const tripList = document.getElementById('pb-trip-list');
+    if (tripList && !_trips.length) {
+      tripList.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">
+        <div style="margin-bottom:8px;font-size:20px">⏳</div>
+        Loading route data…
+      </div>`;
+    }
+
+    if (btn) { btn.textContent = 'Loading route…'; }
+
+    // ── Phase 2: fetch route (large payload, shown as loading)
+    try {
+      _positions = await API.getReportRoute(_deviceId, _fromISO, _toISO) || [];
+    } catch (e) {
+      Toast.error('Route load failed: ' + e.message);
       if (btn) { btn.disabled = false; btn.textContent = 'Show History'; }
       return;
     }
@@ -284,15 +308,13 @@ const PlaybackView = (() => {
 
     if (!_positions.length && !_trips.length) {
       Toast.warn('No data for this period');
-      renderTripList();
       return;
     }
 
+    // ── Phase 3: draw polyline synchronously (fast)
     drawFullTrack();
-    drawPacketDots();
-    renderTripList();
-    updateStats();
 
+    // ── Phase 4: draw packet dots async (deferred so UI doesn't freeze)
     if (_positions.length) {
       document.getElementById('pb-controls').style.display = '';
       const countEl = document.getElementById('pb-pos-count');
@@ -300,6 +322,12 @@ const PlaybackView = (() => {
       _idx = 0;
       updateMarker();
     }
+
+    // Defer dot rendering to next frame so map appears instantly
+    setTimeout(() => drawPacketDots(), 0);
+
+    // Re-render trip list now that we have positions for jump-to
+    renderTripList();
 
     Toast.success(
       `${_trips.length} trip${_trips.length!==1?'s':''}, ${_positions.length} points`
@@ -351,52 +379,62 @@ const PlaybackView = (() => {
   }
 
   /* ─────────────────────────────────────────
-     PACKET DOTS — clickable circle per GPS point
+     PACKET DOTS — batched async rendering
   ───────────────────────────────────────── */
   function drawPacketDots() {
     _dotLayer.clearLayers();
     if (!_positions.length) return;
 
-    // Downsample if too many points (>500 → show every Nth)
-    const MAX_DOTS = 500;
-    const step  = _positions.length > MAX_DOTS
+    // Downsample if too many points (>800 → show every Nth)
+    const MAX_DOTS = 800;
+    const step = _positions.length > MAX_DOTS
       ? Math.ceil(_positions.length / MAX_DOTS) : 1;
 
-    _positions.forEach((pos, i) => {
-      if (i % step !== 0 && i !== _positions.length - 1) return;
-      if (!pos.latitude) return;
+    const indices = [];
+    for (let i = 0; i < _positions.length; i++) {
+      if (i % step === 0 || i === _positions.length - 1) indices.push(i);
+    }
 
-      const spd   = pos.speed ? +(pos.speed * 1.852).toFixed(0) : 0;
-      // Color dot by speed: green < 60, amber < 100, red >= 100
-      const clr   = spd === 0 ? '#94a3b8'
+    // Render in batches of 100 per animation frame to avoid blocking
+    const BATCH = 100;
+    let batchIdx = 0;
+
+    function renderBatch() {
+      const end = Math.min(batchIdx + BATCH, indices.length);
+      for (let b = batchIdx; b < end; b++) {
+        const i   = indices[b];
+        const pos = _positions[i];
+        if (!pos?.latitude) continue;
+
+        const spd = pos.speed ? +(pos.speed * 1.852).toFixed(0) : 0;
+        const clr = spd === 0 ? '#94a3b8'
                   : spd < 60  ? '#10b981'
                   : spd < 100 ? '#f59e0b'
                   :              '#ef4444';
 
-      const dot = L.circleMarker([pos.latitude, pos.longitude], {
-        radius:      spd > 0 ? 4 : 3,
-        fillColor:   clr,
-        color:       '#fff',
-        weight:      1.5,
-        opacity:     1,
-        fillOpacity: 0.9,
-      });
+        const dot = L.circleMarker([pos.latitude, pos.longitude], {
+          radius: spd > 0 ? 4 : 3,
+          fillColor: clr, color: '#fff',
+          weight: 1.5, opacity: 1, fillOpacity: 0.9,
+        });
 
-      dot.bindPopup(packetPopup(`Packet #${i+1}`, pos), {
-        maxWidth: 280,
-        className: 'pb-packet-popup',
-      });
+        dot.bindPopup(packetPopup(`Packet #${i+1}`, pos), {
+          maxWidth: 280, className: 'pb-packet-popup',
+        });
+        dot.on('click', () => { _idx = i; updateMarker(); });
+        _dotLayer.addLayer(dot);
+      }
 
-      // Click → also jump playback to this index
-      dot.on('click', () => {
-        _idx = i;
-        updateMarker();
-      });
+      batchIdx = end;
+      if (batchIdx < indices.length) {
+        requestAnimationFrame(renderBatch);
+      } else {
+        // All dots done — add to map if visible
+        if (_showDots && _map) _dotLayer.addTo(_map);
+      }
+    }
 
-      _dotLayer.addLayer(dot);
-    });
-
-    if (_showDots) _dotLayer.addTo(_map);
+    requestAnimationFrame(renderBatch);
   }
 
   /* ─────────────────────────────────────────
