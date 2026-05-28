@@ -61,16 +61,44 @@ const Fmt = (() => {
     const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60);
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   }
-  function time(iso)      { return iso ? new Date(iso).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) : '—'; }
-  function datetime(iso)  { return iso ? new Date(iso).toLocaleString() : '—'; }
-  function date(iso)      { return iso ? new Date(iso).toLocaleDateString() : '—'; }
+  function time(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d)) return '—';
+    const pad = n => String(n).padStart(2,'0');
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+  function datetime(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d)) return '—';
+    const pad = n => String(n).padStart(2,'0');
+    return `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()} ` +
+           `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+  function date(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d)) return '—';
+    const pad = n => String(n).padStart(2,'0');
+    return `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}`;
+  }
   function ago(iso) {
     if (!iso) return '—';
     const diff = (Date.now() - new Date(iso)) / 1000;
-    if (diff < 60)    return Math.round(diff) + 's ago';
-    if (diff < 3600)  return Math.round(diff / 60) + 'm ago';
-    if (diff < 86400) return Math.round(diff / 3600) + 'h ago';
+    if (diff < 0)      return 'just now';     // clock skew
+    if (diff < 10)     return 'just now';
+    if (diff < 60)     return Math.round(diff) + 's ago';
+    if (diff < 3600)   return Math.round(diff / 60) + 'm ago';
+    if (diff < 86400)  return Math.round(diff / 3600) + 'h ago';
     return Math.round(diff / 86400) + 'd ago';
+  }
+
+  // Returns best available timestamp from a position object
+  // serverTime = when Traccar SERVER received the packet (most accurate for "last heard from")
+  function posTime(pos) {
+    if (!pos) return null;
+    return pos.serverTime || pos.fixTime || pos.deviceTime || null;
   }
   function coord(n)       { return n ? n.toFixed(5) : '—'; }
   function statusClass(s) { return s === 'online' ? 'online' : s === 'idle' ? 'idle' : 'offline'; }
@@ -85,7 +113,7 @@ const Fmt = (() => {
     return colors[Math.abs(hash) % colors.length];
   }
 
-  return { speed, dist, duration, time, datetime, date, ago, coord, statusClass, statusColor, initial, avatarColor };
+  return { speed, dist, duration, time, datetime, date, ago, posTime, coord, statusClass, statusColor, initial, avatarColor };
 })();
 
 /* ── SEARCH UTIL ─────────────────────── */

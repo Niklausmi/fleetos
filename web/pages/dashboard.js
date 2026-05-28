@@ -309,7 +309,7 @@ const Dashboard = (() => {
       const spdColor = spd > 0 ? 'var(--success)'
                      : s === 'offline' ? 'var(--danger)' : 'var(--muted)';
 
-      const lastUpdate  = p.fixTime ? Fmt.ago(p.fixTime) : 'No data';
+      const lastUpdate  = Fmt.ago(Fmt.posTime(p)) || 'No data';
       const isSel       = _selectedId === d.id;
 
       return `
@@ -390,7 +390,7 @@ const Dashboard = (() => {
 
     nameEl.textContent = d.name;
     if (metaEl) metaEl.textContent =
-      `${d.uniqueId||''} · ${p.fixTime ? Fmt.ago(p.fixTime) : 'No data'}`;
+      `${d.uniqueId||''} · ${Fmt.ago(Fmt.posTime(p)) || 'No data'}`;
 
     if (statusEl) {
       const s      = d.status || 'offline';
@@ -537,7 +537,7 @@ const Dashboard = (() => {
           ${vcStat('Satellites', (pa.satellites??pa.sat??'—').toString())}
           ${vcStat('Battery', (pa.battery??pa.externalBattery)!==undefined ? (+( pa.battery??pa.externalBattery)).toFixed(2)+' V':'—')}
           ${vcStat('Odometer', pa.totalDistance?(pa.totalDistance/1000).toFixed(0)+' km':'—', 'var(--primary)')}
-          ${vcStat('Last Update', p.fixTime?Fmt.ago(p.fixTime):'—')}
+          ${vcStat('Last Update', Fmt.ago(Fmt.posTime(p))||'—')}
         </div>
         ${p.latitude ? `
         <div class="vc-section-title" style="margin-top:12px">Location</div>
